@@ -21,16 +21,27 @@ local downwardDistance = 150
 
 local function getBossHRP()
     local entities = workspace:FindFirstChild("Entities")
-    if not entities then return nil end
+    if not entities then
+        print("[DEBUG] Entities folder not found.")
+        return nil
+    end
 
     for _, entity in ipairs(entities:GetChildren()) do
-        if not Players:GetPlayerFromCharacter(entity) then
+        local player = Players:GetPlayerFromCharacter(entity)
+        if not player then
             local hrp = entity:FindFirstChild("HumanoidRootPart")
             if hrp then
+                print("[DEBUG] Found boss: " .. entity.Name)
+                print("[DEBUG] Boss's HumanoidRootPart: " .. tostring(hrp))
                 return hrp
+            else
+                print("[DEBUG] No HumanoidRootPart for entity: " .. entity.Name)
             end
+        else
+            print("[DEBUG] Skipping player character: " .. entity.Name)
         end
     end
+    print("[DEBUG] No boss found.")
     return nil
 end
 
