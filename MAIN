@@ -85,20 +85,13 @@ local function handleHealthCheck()
                 local downwardPos = Vector3.new(hrp.Position.X, hrp.Position.Y - downwardDistance, hrp.Position.Z)
                 tweenToPosition(downwardPos)
                 cooldownHealthLoss = true
-                task.delay(15, function() cooldownHealthLoss = false end)
+                task.delay(12, function() cooldownHealthLoss = false end)
             end
         end
     end
 end
 
-local function waitForEntities()
-    while #workspace.Entities:GetChildren() < 2 do
-        task.wait(1)
-    end
-end
-
 local function executeOnce()
-    waitForEntities()
     local bossHRP = getBossHRP()
     if bossHRP then
         local targetPosition = bossHRP.Position + (bossHRP.CFrame.LookVector * frontDistance)
