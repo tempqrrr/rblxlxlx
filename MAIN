@@ -1,0 +1,121 @@
+-- Print message BEFORE spawning a separate thread
+print("Main module initialized")
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local player = Players.LocalPlayer
+
+local bossHRP = nil
+local humanoid = nil
+local maxHealth = nil
+local cooldownHealthLoss = false
+local cooldownFullHealth = false
+local character = player.Character or player.CharacterAdded:Wait()
+local hrp = character:WaitForChild("HumanoidRootPart")
+
+local tweenSpeed = 0.2
+local frontDistance = 7
+local verticalOffset = 2
+local retreatDistance = 30
+local downwardDistance = 150
+
+local function getBossHRP()
+    local entities = workspace:FindFirstChild("Entities")
+    if not entities then return nil end
+
+    for _, entity in ipairs(entities:GetChildren()) do
+        if not Players:GetPlayerFromCharacter(entity) then
+            local hrp = entity:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                return hrp
+            end
+        end
+    end
+    return nil
+end
+
+local function tweenToPosition(position)
+    local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+    if root then
+        local tween = TweenService:Create(root, TweenInfo.new(tweenSpeed, Enum.EasingStyle.Linear), {CFrame = CFrame.new(position)})
+        tween:Play()
+    end
+end
+
+local function anchorBossOnHealthLoss()
+    while task.wait(0.1) do
+        if humanoid and bossHRP and humanoid.Health < maxHealth then
+            bossHRP.Anchored = true
+        end
+    end
+end
+
+local function unanchorBossOnFullHealth()
+    while task.wait(0.1) do
+        if humanoid and bossHRP and humanoid.Health == maxHealth then
+            bossHRP.Anchored = false
+        end
+    end
+end
+
+local function handleHealthCheck()
+    while task.wait(0.1) do
+        if humanoid and bossHRP and maxHealth then
+            if humanoid.Health == maxHealth and not cooldownFullHealth then
+                local targetPos = bossHRP.Position + (bossHRP.CFrame.LookVector * frontDistance) + Vector3.new(0, verticalOffset, 0)
+                tweenToPosition(targetPos)
+                cooldownFullHealth = true
+                task.delay(3, function() cooldownFullHealth = false end)
+            elseif humanoid.Health < maxHealth and not cooldownHealthLoss then
+                local direction = math.random(1, 2) == 1 and 1 or -1
+                local retreatPos = hrp.Position + (hrp.CFrame.LookVector * retreatDistance * direction)
+                tweenToPosition(retreatPos)
+                task.wait(0.8)
+                local downwardPos = Vector3.new(hrp.Position.X, hrp.Position.Y - downwardDistance, hrp.Position.Z)
+                tweenToPosition(downwardPos)
+                cooldownHealthLoss = true
+                task.delay(15, function() cooldownHealthLoss = false end)
+            end
+        end
+    end
+end
+
+local function waitForEntities()
+    while #workspace.Entities:GetChildren() < 2 do
+        task.wait(1)
+    end
+end
+
+local function executeOnce()
+    waitForEntities()
+    local bossHRP = getBossHRP()
+    if bossHRP then
+        local targetPosition = bossHRP.Position + (bossHRP.CFrame.LookVector * frontDistance)
+        tweenToPosition(targetPosition)
+    else
+        warn("[ERROR] Boss not found.")
+    end
+end
+
+local function onCharacterAdded(character)
+    humanoid = character:WaitForChild("Humanoid")
+    task.wait(3) -- Allow time for boss detection
+    maxHealth = humanoid.Health
+    bossHRP = getBossHRP()
+
+    task.spawn(anchorBossOnHealthLoss)
+    task.spawn(unanchorBossOnFullHealth)
+    task.spawn(handleHealthCheck)
+end
+
+-- Ensure the one-time boss positioning executes once
+if not _G.hasExecutedOnce then
+    _G.hasExecutedOnce = true
+    executeOnce()
+end
+
+-- Listen for character respawn
+player.CharacterAdded:Connect(onCharacterAdded)
+if player.Character then
+    onCharacterAdded(player.Character)
+end
