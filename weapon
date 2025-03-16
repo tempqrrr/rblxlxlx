@@ -37,13 +37,8 @@ local function autoEquipWeapon()
                 game:GetService("ReplicatedStorage"):WaitForChild("Bridgenet2Main"):WaitForChild("dataRemoteEvent"):FireServer(unpack(args))
             end
         end
-        task.wait(0.1) -- Checks every 0.1 second for faster response
+        task.wait(1) -- Checks every 0.1 second for faster response
     end
-end
-
--- Wait for Entities to have 2 children
-while #workspace.Entities:GetChildren() < 2 do
-    task.wait(1)
 end
 
 -- Start auto-equipping
