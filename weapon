@@ -1,0 +1,50 @@
+-- Print message BEFORE spawning a separate thread
+print("Weapon module initialized")
+
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+
+local function getBossHRP()
+    local entities = workspace:FindFirstChild("Entities")
+    if not entities then return nil end
+
+    for _, entity in ipairs(entities:GetChildren()) do
+        if not Players:GetPlayerFromCharacter(entity) then
+            local hrp = entity:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                return hrp
+            end
+        end
+    end
+    return nil
+end
+
+local function autoEquipWeapon()
+    while true do
+        local bossHRP = getBossHRP()
+        if bossHRP then
+            local toggle = workspace.Entities:FindFirstChild(player.Name) and workspace.Entities[player.Name]:FindFirstChild("Toggle")
+            if toggle and toggle.Value == false then
+                local args = {
+                    [1] = {
+                        [1] = {
+                            ["Module"] = "Toggle",
+                            ["IsHolding"] = false
+                        },
+                        [2] = "\5"
+                    }
+                }
+                game:GetService("ReplicatedStorage"):WaitForChild("Bridgenet2Main"):WaitForChild("dataRemoteEvent"):FireServer(unpack(args))
+            end
+        end
+        task.wait(0.1) -- Checks every 0.1 second for faster response
+    end
+end
+
+-- Wait for Entities to have 2 children
+while #workspace.Entities:GetChildren() < 2 do
+    task.wait(1)
+end
+
+-- Start auto-equipping
+task.spawn(autoEquipWeapon)
