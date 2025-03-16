@@ -33,10 +33,5 @@ local function faceBoss()
     end
 end
 
--- Wait for Entities to have 2 children
-while #workspace.Entities:GetChildren() < 2 do
-    task.wait(1)
-end
-
 -- Start facing the boss
 task.spawn(faceBoss)
