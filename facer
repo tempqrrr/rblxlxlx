@@ -1,0 +1,42 @@
+-- Print message BEFORE spawning a separate thread
+print("Facer module initialized")
+
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+
+local function getBossHRP()
+    local entities = workspace:FindFirstChild("Entities")
+    if not entities then return nil end
+
+    for _, entity in ipairs(entities:GetChildren()) do
+        if not Players:GetPlayerFromCharacter(entity) then
+            local hrp = entity:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                return hrp
+            end
+        end
+    end
+    return nil
+end
+
+local function faceBoss()
+    while true do
+        local bossHRP = getBossHRP()
+        local character = player.Character or player.CharacterAdded:Wait()
+        local hrp = character:WaitForChild("HumanoidRootPart")
+
+        if bossHRP and hrp then
+            hrp.CFrame = CFrame.lookAt(hrp.Position, bossHRP.Position)
+        end
+
+        task.wait(1) -- Check every 1 second
+    end
+end
+
+-- Wait for Entities to have 2 children
+while #workspace.Entities:GetChildren() < 2 do
+    task.wait(1)
+end
+
+-- Start facing the boss
+task.spawn(faceBoss)
