@@ -13,7 +13,7 @@ local cooldownFullHealth = false
 local character = player.Character or player.CharacterAdded:Wait()
 local hrp = character:WaitForChild("HumanoidRootPart")
 
-local tweenSpeed = 0.2
+local tweenSpeed = 0.8
 local frontDistance = 7
 local verticalOffset = 2
 local retreatDistance = 30
