@@ -1,3 +1,17 @@
+-- Print message BEFORE checking for entities
+print("[INFO] Menu script initialized. Waiting for boss detection...")
+
+local function checkEntities()
+    local entities = workspace:FindFirstChild("Entities")
+    return entities and #entities:GetChildren() >= 2
+end
+
+-- Continuously check for the condition
+while not checkEntities() do
+    task.wait(0.8)
+end
+
+-- Load all modules once condition is met
 loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/MAIN"))()
 loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/weapon"))()
 loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/facer"))()
