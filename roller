@@ -1,0 +1,33 @@
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local hrp = character:WaitForChild("HumanoidRootPart")
+local lastPosition = hrp.Position
+local rolling = false
+
+local args = {
+    [1] = {
+        [1] = {
+            ["Module"] = "Dash"
+        },
+        [2] = "\5"
+    }
+}
+
+local function isMoving()
+    local currentPosition = hrp.Position
+    local isMoving = (currentPosition - lastPosition).magnitude > 0.1
+    lastPosition = currentPosition
+    return isMoving
+end
+
+local function rollLoop()
+    while true do
+        if isMoving() then
+            game:GetService("ReplicatedStorage"):WaitForChild("Bridgenet2Main"):WaitForChild("dataRemoteEvent"):FireServer(unpack(args))
+        end
+        task.wait(0.1)
+    end
+end
+
+task.spawn(rollLoop)
