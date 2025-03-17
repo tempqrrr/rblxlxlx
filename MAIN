@@ -13,10 +13,10 @@ local cooldownFullHealth = false
 local character = player.Character or player.CharacterAdded:Wait()
 local hrp = character:WaitForChild("HumanoidRootPart")
 
-local tweenSpeed = 0.8
-local frontDistance = 7
-local verticalOffset = 2
-local retreatDistance = 30
+local tweenSpeed = 0.7
+local frontDistance = 9
+local verticalOffset = 1
+local retreatDistance = 40
 local downwardDistance = 150
 
 local function getBossHRP()
@@ -85,7 +85,7 @@ local function handleHealthCheck()
                 local downwardPos = Vector3.new(hrp.Position.X, hrp.Position.Y - downwardDistance, hrp.Position.Z)
                 tweenToPosition(downwardPos)
                 cooldownHealthLoss = true
-                task.delay(12, function() cooldownHealthLoss = false end)
+                task.delay(11, function() cooldownHealthLoss = false end)
             end
         end
     end
