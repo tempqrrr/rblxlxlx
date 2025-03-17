@@ -1,33 +1,39 @@
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
+-- Get the player's position
+local player = game.Players.LocalPlayer  -- This assumes the script is local and executed by the player.
+
+-- Ensure the character is loaded
 local character = player.Character or player.CharacterAdded:Wait()
-local hrp = character:WaitForChild("HumanoidRootPart")
-local lastPosition = hrp.Position
-local rolling = false
 
-local args = {
-    [1] = {
-        [1] = {
-            ["Module"] = "Dash"
-        },
-        [2] = "\5"
-    }
-}
+-- Wait for the HumanoidRootPart to be available
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+local position = humanoidRootPart.Position
 
-local function isMoving()
-    local currentPosition = hrp.Position
-    local isMoving = (currentPosition - lastPosition).magnitude > 0.1
-    lastPosition = currentPosition
-    return isMoving
+-- Set the baseplate dimensions
+local width = 1000  -- X and Z dimensions of the baseplate
+local depth = 1000
+local height = 2  -- The baseplate's thickness (going downwards)
+
+-- The position where the baseplate should be placed (X, Y, Z)
+local baseplatePosition = Vector3.new(position.X, position.Y - height, position.Z)
+
+-- Create a part for the baseplate
+local baseplate = Instance.new("Part")
+baseplate.Size = Vector3.new(width, height, depth)
+baseplate.Position = baseplatePosition
+baseplate.Anchored = true
+baseplate.BrickColor = BrickColor.new("Institutional white")  -- Baseplate color
+baseplate.Name = "Baseplate"
+baseplate.Parent = game.Workspace.Map.BossRoom
+
+-- Make it a floor by setting its material and properties
+baseplate.Material = Enum.Material.SmoothPlastic
+baseplate.CanCollide = true
+
+-- Wait for 3 seconds
+wait(3)
+
+-- Delete the RoomModel in BossRoom
+local roomModel = game.Workspace.Map.BossRoom:FindFirstChild("RoomModel")
+if roomModel then
+    roomModel:Destroy()
 end
-
-local function rollLoop()
-    while true do
-        if isMoving() then
-            game:GetService("ReplicatedStorage"):WaitForChild("Bridgenet2Main"):WaitForChild("dataRemoteEvent"):FireServer(unpack(args))
-        end
-        task.wait(0.1)
-    end
-end
-
-task.spawn(rollLoop)
