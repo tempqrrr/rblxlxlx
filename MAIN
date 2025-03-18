@@ -15,7 +15,7 @@ local hrp = character:WaitForChild("HumanoidRootPart")
 
 local tweenSpeed = 1
 local frontDistance = 9
-local verticalOffset = 1
+local verticalOffset = 0
 local retreatDistance = 30
 local downwardDistance = 185
 
@@ -85,7 +85,7 @@ local function handleHealthCheck()
                 local downwardPos = Vector3.new(hrp.Position.X, hrp.Position.Y - downwardDistance, hrp.Position.Z)
                 tweenToPosition(downwardPos)
                 cooldownHealthLoss = true
-                task.delay(8, function() cooldownHealthLoss = false end)
+                task.delay(4, function() cooldownHealthLoss = false end)
             end
         end
     end
