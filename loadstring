@@ -17,10 +17,27 @@ end
 -- Wait until there are at least 2 entities
 waitForEntities()
 
--- Execute the script
-loadstring(game:HttpGet('https://pastebin.com/raw/fk7EDDLd'))()
-loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/MAIN"))()
-loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/weapon"))()
-loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/facer"))()
-loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/roller"))()
-loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/m1"))()
+-- Execute all the scripts simultaneously using coroutines
+coroutine.wrap(function()
+    loadstring(game:HttpGet('https://pastebin.com/raw/fk7EDDLd'))()
+end)()
+
+coroutine.wrap(function()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/MAIN"))()
+end)()
+
+coroutine.wrap(function()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/weapon"))()
+end)()
+
+coroutine.wrap(function()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/m1"))()
+end)()
+
+coroutine.wrap(function()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/facer"))()
+end)()
+
+coroutine.wrap(function()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/roller"))()
+end)()
