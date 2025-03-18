@@ -29,7 +29,7 @@ local function faceBoss()
             hrp.CFrame = CFrame.lookAt(hrp.Position, bossHRP.Position)
         end
 
-        task.wait(1) -- Check every 1 second
+        task.wait(0.05) -- Check every 1 second
     end
 end
 
