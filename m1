@@ -1,0 +1,32 @@
+local UserInputService = game:GetService("UserInputService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local remoteEvent = ReplicatedStorage:WaitForChild("Bridgenet2Main"):WaitForChild("dataRemoteEvent")
+local toggled = false
+
+local args = {
+    [1] = {
+        [1] = {
+            ["Module"] = "M1"
+        },
+        [2] = "\5"
+    }
+}
+
+local function spamM1()
+    while toggled do
+        remoteEvent:FireServer(unpack(args))
+        task.wait(0.05)
+    end
+end
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+
+    if input.KeyCode == Enum.KeyCode.J then
+        toggled = not toggled
+        if toggled then
+            task.spawn(spamM1)
+        end
+    end
+end)
