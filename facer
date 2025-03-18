@@ -1,1 +1,85 @@
-print("facer updating rn")
+-- Print message BEFORE spawning a separate thread
+print("Facer module initialized")
+
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local Camera = game:GetService("Workspace").CurrentCamera
+
+local humanoid = nil
+local maxHealth = nil
+local isCamLocking = false
+
+-- Function to find the Boss's HumanoidRootPart
+local function getBossHRP()
+    local entities = workspace:FindFirstChild("Entities")
+    if not entities then return nil end
+
+    for _, entity in ipairs(entities:GetChildren()) do
+        if not Players:GetPlayerFromCharacter(entity) then
+            local hrp = entity:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                return hrp
+            end
+        end
+    end
+    return nil
+end
+
+-- Function to lock the camera onto the boss, but only on X and Z axes
+local function camLockOntoBoss()
+    if isCamLocking then return end
+    isCamLocking = true
+
+    RunService.RenderStepped:Connect(function()
+        if humanoid and humanoid.Health < maxHealth then
+            isCamLocking = false
+            return
+        end
+
+        local bossHRP = getBossHRP()
+        if bossHRP and isCamLocking then
+            local camPos = Camera.CFrame.Position
+            local bossPos = bossHRP.Position
+            
+            -- Keep the Y value of the camera the same, only face the boss on X and Z
+            local targetPos = Vector3.new(bossPos.X, camPos.Y, bossPos.Z)
+            Camera.CFrame = CFrame.lookAt(camPos, targetPos)
+        end
+    end)
+end
+
+-- Function to make the player face the boss but only on X and Z axes
+local function faceBoss()
+    local character = player.Character or player.CharacterAdded:Wait()
+    local hrp = character:WaitForChild("HumanoidRootPart")
+
+    RunService.RenderStepped:Connect(function()
+        local bossHRP = getBossHRP()
+        if bossHRP and hrp then
+            local playerPos = hrp.Position
+            local bossPos = bossHRP.Position
+            
+            -- Keep Y the same, only adjust X and Z
+            local targetPos = Vector3.new(bossPos.X, playerPos.Y, bossPos.Z)
+            hrp.CFrame = CFrame.lookAt(playerPos, targetPos)
+        end
+    end)
+end
+
+-- Function to start cam lock on respawn
+local function startCamLockOnRespawn()
+    player.CharacterAdded:Connect(function(character)
+        humanoid = character:WaitForChild("Humanoid")
+        maxHealth = humanoid.Health
+
+        -- Restart cam lock and facing logic
+        task.spawn(camLockOntoBoss)
+        task.spawn(faceBoss)
+    end)
+end
+
+-- **Run on script execution**
+task.spawn(camLockOntoBoss)
+task.spawn(faceBoss)
+startCamLockOnRespawn()
