@@ -9,9 +9,9 @@ local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
 local position = humanoidRootPart.Position
 
 -- Set the baseplate dimensions
-local width = 1000  -- X and Z dimensions of the baseplate
-local depth = 1000
-local height = 2  -- The baseplate's thickness (going downwards)
+local width = 2000  -- X and Z dimensions of the baseplate
+local depth = 2000
+local height = 15  -- The baseplate's thickness (going downwards)
 
 -- The position where the baseplate should be placed (X, Y, Z)
 local baseplatePosition = Vector3.new(position.X, position.Y - height, position.Z)
