@@ -3,7 +3,14 @@ print("Facer module initialized")
 
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local Camera = game:GetService("Workspace").CurrentCamera
 
+local humanoid = nil
+local maxHealth = nil
+local isCamLocking = false -- Variable to track the state of cam lock
+
+-- Function to find the Boss's HumanoidRootPart
 local function getBossHRP()
     local entities = workspace:FindFirstChild("Entities")
     if not entities then return nil end
@@ -19,19 +26,74 @@ local function getBossHRP()
     return nil
 end
 
-local function faceBoss()
-    while true do
-        local bossHRP = getBossHRP()
-        local character = player.Character or player.CharacterAdded:Wait()
-        local hrp = character:WaitForChild("HumanoidRootPart")
+-- Function to lock the camera onto the boss
+local function camLockOntoBoss()
+    -- Prevent starting cam lock multiple times
+    if isCamLocking then return end
+    isCamLocking = true
 
-        if bossHRP and hrp then
-            hrp.CFrame = CFrame.lookAt(hrp.Position, bossHRP.Position)
+    -- Continuously update the camera every frame
+    RunService.RenderStepped:Connect(function()
+        if humanoid and humanoid.Health < maxHealth then
+            -- Stop cam locking when health is not full
+            isCamLocking = false
+            return
         end
 
-        task.wait(0.05) -- Check every 1 second
+        local bossHRP = getBossHRP()
+
+        if bossHRP and isCamLocking then
+            -- Set the camera's CFrame to look at the boss's HumanoidRootPart
+            Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, bossHRP.Position)
+        end
+    end)
+end
+
+-- Function to check the health and update cam lock state
+local function checkHealthAndUpdateCamLock()
+    while task.wait(0.1) do
+        if humanoid then
+            if humanoid.Health == maxHealth and not isCamLocking then
+                -- Start the cam lock if health is full
+                camLockOntoBoss()
+            elseif humanoid.Health < maxHealth and isCamLocking then
+                -- Stop the cam lock if health is not full
+                isCamLocking = false
+            end
+        end
     end
 end
 
--- Start facing the boss
+-- Function to continuously check for respawn and restart cam lock
+local function startCamLockOnRespawn()
+    player.CharacterAdded:Connect(function(character)
+        -- Wait until the character is fully loaded
+        humanoid = character:WaitForChild("Humanoid")
+        maxHealth = humanoid.Health
+
+        -- Start checking health and updating cam lock state
+        task.spawn(checkHealthAndUpdateCamLock)
+    end)
+end
+
+-- Start the camlock and respawn handling
+startCamLockOnRespawn()
+
+-- Start facing the boss as well (optional, but keeps orientation aligned)
+local function faceBoss()
+    local character = player.Character or player.CharacterAdded:Wait()
+    local hrp = character:WaitForChild("HumanoidRootPart")
+
+    -- Use RenderStepped to continuously update every frame
+    RunService.RenderStepped:Connect(function()
+        local bossHRP = getBossHRP()
+
+        if bossHRP and hrp then
+            -- Directly lock on by continuously updating the CFrame
+            hrp.CFrame = CFrame.lookAt(hrp.Position, bossHRP.Position)
+        end
+    end)
+end
+
+-- Start facing the boss as well (optional, but keeps orientation aligned)
 task.spawn(faceBoss)
