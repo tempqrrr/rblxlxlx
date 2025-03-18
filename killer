@@ -1,0 +1,49 @@
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local isLoopActive = false -- Toggle state
+
+-- Function to find all entities that are not players
+local function getNonPlayerHumanoids()
+    local entities = workspace:FindFirstChild("Entities")
+    if not entities then return {} end
+
+    local humanoids = {}
+    for _, entity in ipairs(entities:GetChildren()) do
+        if not Players:GetPlayerFromCharacter(entity) then
+            local humanoid = entity:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                table.insert(humanoids, humanoid)
+            end
+        end
+    end
+    return humanoids
+end
+
+-- Function to loop and set health to -1
+local function toggleLoop()
+    if isLoopActive then
+        isLoopActive = false
+        return
+    end
+
+    isLoopActive = true
+    task.spawn(function()
+        while isLoopActive do
+            local humanoids = getNonPlayerHumanoids()
+            for _, humanoid in ipairs(humanoids) do
+                humanoid.Health = -1
+            end
+            task.wait(0.1) -- Delay between each iteration
+        end
+    end)
+end
+
+-- Keybind to toggle the loop
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.K then
+        toggleLoop()
+    end
+end)
