@@ -1,17 +1,24 @@
--- Print message BEFORE checking for entities
-print("[INFO] Menu script initialized. Waiting for boss detection...")
+print("Waiting")
 
-local function checkEntities()
-    local entities = workspace:FindFirstChild("Entities")
-    return entities and #entities:GetChildren() >= 2
+local entitiesFolder = workspace:FindFirstChild("Entities")
+
+if not entitiesFolder then
+    warn("Entities folder not found!")
+    return
 end
 
--- Continuously check for the condition
-while not checkEntities() do
-    task.wait(0.8)
+-- Function to wait until there are at least 2 entities
+local function waitForEntities()
+    while #entitiesFolder:GetChildren() < 2 do
+        task.wait(0.1) -- Check every 0.1 seconds
+    end
 end
 
--- Load all modules once condition is met
+-- Wait until there are at least 2 entities
+waitForEntities()
+
+-- Execute the script
+loadstring(game:HttpGet('https://pastebin.com/raw/fk7EDDLd'))()
 loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/MAIN"))()
 loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/weapon"))()
 loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/facer"))()
