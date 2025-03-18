@@ -1,8 +1,6 @@
-local UserInputService = game:GetService("UserInputService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local remoteEvent = game.ReplicatedStorage:WaitForChild("Bridgenet2Main"):WaitForChild("dataRemoteEvent")
 
-local remoteEvent = ReplicatedStorage:WaitForChild("Bridgenet2Main"):WaitForChild("dataRemoteEvent")
-local toggled = true
+local toggled = true  -- Set this to `true` to start, `false` to stop
 
 local args = {
     [1] = {
@@ -13,20 +11,13 @@ local args = {
     }
 }
 
-local function spamM1()
+-- Function to keep sending M1 arguments
+local function keepM1ing()
     while toggled do
         remoteEvent:FireServer(unpack(args))
-        task.wait(0.05)
+        wait(0.1)  -- Wait for a short time (0.1 seconds), you can adjust the frequency
     end
 end
 
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-
-    if input.KeyCode == Enum.KeyCode.J then
-        toggled = not toggled
-        if toggled then
-            task.spawn(spamM1)
-        end
-    end
-end)
+-- Execute the function to keep sending M1
+keepM1ing()
