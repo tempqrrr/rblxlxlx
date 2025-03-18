@@ -73,7 +73,13 @@ local function handleHealthCheck()
     while task.wait(0.1) do
         if humanoid and bossHRP and maxHealth then
             if humanoid.Health == maxHealth and not cooldownFullHealth then
-                local targetPos = bossHRP.Position + (bossHRP.CFrame.LookVector * frontDistance) + Vector3.new(0, verticalOffset, 0)
+                -- Get the player's current Y position
+                local playerYPos = hrp.Position.Y
+                
+                -- Calculate the target position 9 studs in front of the boss, keeping the player's current Y position
+                local targetPos = bossHRP.Position + (bossHRP.CFrame.LookVector * frontDistance)
+                targetPos = Vector3.new(targetPos.X, playerYPos, targetPos.Z) -- Keep the player's Y position, and adjust X and Z
+                
                 tweenToPosition(targetPos)
                 cooldownFullHealth = true
                 task.delay(2, function() cooldownFullHealth = false end)
