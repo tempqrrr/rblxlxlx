@@ -50,7 +50,7 @@ end
 
 if not isWhitelisted then
     -- If not whitelisted, kick the player
-    player:Kick("Not whitelisted. Contact wadadaddddadad on Discord.")
+    player:Kick("not whitelisted.  wadadaddddadad on discord, or just read #announcements.")
     return -- Stop further execution
 end
 
