@@ -1,0 +1,24 @@
+local UserInputService = game:GetService("UserInputService")
+
+local tracking = false
+local startTime = 0
+
+local function onInputBegan(input, gameProcessed)
+    if gameProcessed then return end  -- Ignore inputs that were used by the game
+
+    if input.KeyCode == Enum.KeyCode.J then
+        if not tracking then
+            -- Start tracking time
+            startTime = tick()
+            tracking = true
+            print("second counter started (i really hope this works)")
+        else
+            -- Stop tracking and print elapsed time
+            local elapsedTime = tick() - startTime
+            tracking = false
+            print("seconds count: " .. math.floor(elapsedTime) .. " seconds")
+        end
+    end
+end
+
+UserInputService.InputBegan:Connect(onInputBegan)
