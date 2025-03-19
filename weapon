@@ -23,21 +23,41 @@ local function autoEquipWeapon()
     while true do
         local bossHRP = getBossHRP()
         if bossHRP then
-            local toggle = workspace.Entities:FindFirstChild(player.Name) and workspace.Entities[player.Name]:FindFirstChild("Toggle")
-            if toggle and toggle.Value == false then
-                local args = {
-                    [1] = {
+            local playerEntity = workspace.Entities:FindFirstChild(player.Name)
+            local toggle = playerEntity and playerEntity:FindFirstChild("Toggle")
+            local race = playerEntity and playerEntity:FindFirstChild("Race")
+
+            if toggle and toggle.Value == false and race and race.Value then
+                local args
+
+                if race.Value == "Human" then
+                    args = {
                         [1] = {
-                            ["Module"] = "Toggle",
-                            ["IsHolding"] = false
-                        },
-                        [2] = "\5"
+                            [1] = {
+                                ["Module"] = "Toggle",
+                                ["IsHolding"] = false
+                            },
+                            [2] = "\5"
+                        }
                     }
-                }
-                game:GetService("ReplicatedStorage"):WaitForChild("Bridgenet2Main"):WaitForChild("dataRemoteEvent"):FireServer(unpack(args))
+                elseif race.Value == "Ghoul" then
+                    args = {
+                        [1] = {
+                            [1] = {
+                                ["Module"] = "Toggle",
+                                ["IsHolding"] = true
+                            },
+                            [2] = "\5"
+                        }
+                    }
+                end
+
+                if args then
+                    game:GetService("ReplicatedStorage"):WaitForChild("Bridgenet2Main"):WaitForChild("dataRemoteEvent"):FireServer(unpack(args))
+                end
             end
         end
-        task.wait(1) -- Checks every 0.1 second for faster response
+        task.wait(1) -- Checks every 1 second
     end
 end
 
