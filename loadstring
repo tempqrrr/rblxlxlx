@@ -1,3 +1,63 @@
+local userInputService = game:GetService("UserInputService")
+local players = game:GetService("Players")
+local player = players.LocalPlayer
+local mouse = player:GetMouse()
+local entitiesFolder = workspace:FindFirstChild("Entities") -- Get Entities folder
+local HttpService = game:GetService("HttpService")
+local RbxAnalyticsService = game:GetService("RbxAnalyticsService")
+
+local toggle = false
+
+-- The URL to the raw whitelist file on GitHub
+local whitelistUrl = "https://github.com/tempqrrr/rblxlxlx/raw/refs/heads/main/whitelisted"
+
+-- Function to notify the player
+local function notify(message)
+    game.StarterGui:SetCore("SendNotification", {
+        Title = "Script Notification";
+        Text = message;
+        Duration = 2;
+    })
+end
+
+-- Fetch the whitelisted Client IDs from the raw URL
+local function fetchWhitelistedClientIds()
+    local success, response = pcall(function()
+        return loadstring(game:HttpGet(whitelistUrl))()
+    end)
+
+    if success and type(response) == "table" then
+        return response
+    else
+        return {} -- Return empty table if failed
+    end
+end
+
+-- Get the player's Client ID
+local clientId = RbxAnalyticsService:GetClientId()
+
+-- Table to store whitelisted Client IDs
+local whitelistedClientIds = fetchWhitelistedClientIds()
+
+-- Check if the current player's Client ID is whitelisted
+local isWhitelisted = false
+for _, id in pairs(whitelistedClientIds) do
+    if clientId == id then
+        isWhitelisted = true
+        break
+    end
+end
+
+if not isWhitelisted then
+    -- If not whitelisted, kick the player
+    player:Kick("Not whitelisted. Contact wadadaddddadad on Discord.")
+    return -- Stop further execution
+end
+
+print("whitelisted")
+
+loadstring(game:HttpGet('https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/timer'))()
+
 print("Waiting")
 
 local entitiesFolder = workspace:FindFirstChild("Entities")
