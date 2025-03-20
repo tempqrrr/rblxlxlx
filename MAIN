@@ -6,10 +6,8 @@ local TweenService = game:GetService("TweenService")
 local player = Players.LocalPlayer
 
 local bossHRP = nil
-local humanoid = nil
-local maxHealth = nil
-local cooldownHealthLoss = false
-local cooldownFullHealth = false
+local cooldownForceField = false
+local cooldownNoForceField = false
 local character = player.Character or player.CharacterAdded:Wait()
 local hrp = character:WaitForChild("HumanoidRootPart")
 
@@ -32,13 +30,8 @@ local function getBossHRP()
             local hrp = entity:FindFirstChild("HumanoidRootPart")
             if hrp then
                 print("[DEBUG] Found boss: " .. entity.Name)
-                print("[DEBUG] Boss's HumanoidRootPart: " .. tostring(hrp))
                 return hrp
-            else
-                print("[DEBUG] No HumanoidRootPart for entity: " .. entity.Name)
             end
-        else
-            print("[DEBUG] Skipping player character: " .. entity.Name)
         end
     end
     print("[DEBUG] No boss found.")
@@ -53,46 +46,39 @@ local function tweenToPosition(position)
     end
 end
 
-local function anchorBossOnHealthLoss()
+local function handleForceFieldCheck()
     while task.wait(0.1) do
-        if humanoid and bossHRP and humanoid.Health < maxHealth then
-            bossHRP.Anchored = true
-        end
-    end
-end
+        local playerEntity = workspace.Entities:FindFirstChild(player.Name) -- Find the player's entity
+        if playerEntity then
+            local forceField = playerEntity:FindFirstChild("ForceField")
 
-local function unanchorBossOnFullHealth()
-    while task.wait(0.1) do
-        if humanoid and bossHRP and humanoid.Health == maxHealth then
-            bossHRP.Anchored = false
-        end
-    end
-end
+            if forceField and not cooldownForceField then
+                -- ForceField exists, go near the boss
+                if bossHRP then
+                    local targetPos = bossHRP.Position + (bossHRP.CFrame.LookVector * frontDistance) + Vector3.new(0, verticalOffset, 0)
+                    tweenToPosition(targetPos)
+                end
+                cooldownForceField = true
+                task.delay(2, function() cooldownForceField = false end)
 
-local function handleHealthCheck()
-    while task.wait(0.1) do
-        if humanoid and bossHRP and maxHealth then
-            if humanoid.Health == maxHealth and not cooldownFullHealth then
-                local targetPos = bossHRP.Position + (bossHRP.CFrame.LookVector * frontDistance) + Vector3.new(0, verticalOffset, 0)
-                tweenToPosition(targetPos)
-                cooldownFullHealth = true
-                task.delay(2, function() cooldownFullHealth = false end)
-            elseif humanoid.Health < maxHealth and not cooldownHealthLoss then
+            elseif not forceField and not cooldownNoForceField then
+                -- No ForceField, retreat
                 local direction = math.random(1, 2) == 1 and 1 or -1
                 local retreatPos = hrp.Position + (hrp.CFrame.LookVector * retreatDistance * direction)
                 tweenToPosition(retreatPos)
                 task.wait(1.1)
                 local downwardPos = Vector3.new(hrp.Position.X, hrp.Position.Y - downwardDistance, hrp.Position.Z)
                 tweenToPosition(downwardPos)
-                cooldownHealthLoss = true
-                task.delay(3, function() cooldownHealthLoss = false end)
+                
+                cooldownNoForceField = true
+                task.delay(3, function() cooldownNoForceField = false end)
             end
         end
     end
 end
 
 local function executeOnce()
-    local bossHRP = getBossHRP()
+    bossHRP = getBossHRP()
     if bossHRP then
         local targetPosition = bossHRP.Position + (bossHRP.CFrame.LookVector * frontDistance)
         tweenToPosition(targetPosition)
@@ -102,14 +88,10 @@ local function executeOnce()
 end
 
 local function onCharacterAdded(character)
-    humanoid = character:WaitForChild("Humanoid")
     task.wait(3) -- Allow time for boss detection
-    maxHealth = humanoid.Health
     bossHRP = getBossHRP()
 
-    task.spawn(anchorBossOnHealthLoss)
-    task.spawn(unanchorBossOnFullHealth)
-    task.spawn(handleHealthCheck)
+    task.spawn(handleForceFieldCheck)
 end
 
 -- Ensure the one-time boss positioning executes once
