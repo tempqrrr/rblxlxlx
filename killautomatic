@@ -1,0 +1,48 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local isLoopActive = false
+
+-- Function to find the boss's humanoid
+local function getBossHumanoid()
+    local entities = workspace:FindFirstChild("Entities")
+    if not entities then return nil end
+
+    for _, entity in ipairs(entities:GetChildren()) do
+        if not Players:GetPlayerFromCharacter(entity) then
+            local humanoid = entity:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                return humanoid -- Assume first valid non-player humanoid is the boss
+            end
+        end
+    end
+    return nil
+end
+
+-- Function to loop and set health to -1
+local function startHealthLoop()
+    if isLoopActive then return end
+    isLoopActive = true
+
+    task.spawn(function()
+        while isLoopActive do
+            local bossHumanoid = getBossHumanoid()
+            if bossHumanoid and bossHumanoid.Health > 0 then
+                bossHumanoid.Health = -1
+            else
+                isLoopActive = false -- Stop loop if boss disappears or dies
+            end
+            task.wait(0.1)
+        end
+    end)
+end
+
+-- Function to monitor boss's health
+task.spawn(function()
+    while task.wait(0.3) do
+        local bossHumanoid = getBossHumanoid()
+        if bossHumanoid and bossHumanoid.Health < 2000 then
+            startHealthLoop()
+        end
+    end
+end)
