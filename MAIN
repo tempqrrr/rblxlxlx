@@ -11,10 +11,10 @@ local cooldownToUnderground = false
 local character = player.Character or player.CharacterAdded:Wait()
 local hrp = character:WaitForChild("HumanoidRootPart")
 
-local tweenSpeed = 0.6
+local tweenSpeed = 0.4
 local frontDistance = 9
 local verticalOffset = 0
-local downwardDistance = 100
+local downwardDistance = 50
 
 local function getBossHRP()
     local entities = workspace:FindFirstChild("Entities")
