@@ -1,39 +1,35 @@
+-- Print message BEFORE spawning a separate thread
 print("Weapon module initialized")
 
-local player = game:GetService("Players").LocalPlayer
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
 
 local function getBossHRP()
-    local Players = game:GetService("Players")
     local entities = workspace:FindFirstChild("Entities")
     if not entities then return nil end
 
     for _, entity in ipairs(entities:GetChildren()) do
         if not Players:GetPlayerFromCharacter(entity) then
             local hrp = entity:FindFirstChild("HumanoidRootPart")
-            if hrp then return hrp end
+            if hrp then
+                return hrp
+            end
         end
     end
     return nil
 end
 
-local bossExists = false
-
-local function checkBossLoop()
-    while true do
-        bossExists = getBossHRP() ~= nil
-        task.wait(3) -- Check every 3 seconds
-    end
-end
-
 local function autoEquipWeapon()
     while true do
-        if bossExists then
+        local bossHRP = getBossHRP()
+        if bossHRP then
             local playerEntity = workspace.Entities:FindFirstChild(player.Name)
             local toggle = playerEntity and playerEntity:FindFirstChild("Toggle")
             local race = playerEntity and playerEntity:FindFirstChild("Race")
 
             if toggle and toggle.Value == false and race and race.Value then
                 local args
+
                 if race.Value == "Human" then
                     args = {
                         [1] = {
@@ -61,9 +57,9 @@ local function autoEquipWeapon()
                 end
             end
         end
-        task.wait(1)
+        task.wait(1) -- Checks every 1 second
     end
 end
 
-task.spawn(checkBossLoop)
+-- Start auto-equipping
 task.spawn(autoEquipWeapon)
