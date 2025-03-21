@@ -16,6 +16,8 @@ local frontDistance = 9
 local verticalOffset = 0
 local downwardDistance = 50
 
+local isBossActive = true -- This will track if the boss is still alive
+
 local function getBossHRP()
     local entities = workspace:FindFirstChild("Entities")
     if not entities then
@@ -47,6 +49,10 @@ end
 
 local function handleForceFieldCheck()
     while task.wait(0.015) do
+        if not isBossActive then
+            return -- Stop the loop if the boss is not active
+        end
+        
         local playerEntity = workspace.Entities:FindFirstChild(player.Name) -- Find the player's entity
         if playerEntity then
             local forceField = playerEntity:FindFirstChild("ForceField")
@@ -89,6 +95,17 @@ local function onCharacterAdded(character)
     task.spawn(handleForceFieldCheck)
 end
 
+-- Function to check if the boss still exists
+local function checkBossEverySecond()
+    while task.wait(1) do
+        if not getBossHRP() then
+            print("[DEBUG] Boss no longer exists. Cancelling script...")
+            isBossActive = false -- Set the flag to stop all operations
+            return -- Stop the loop and all other processes
+        end
+    end
+end
+
 -- Ensure the one-time boss positioning executes once
 if not _G.hasExecutedOnce then
     _G.hasExecutedOnce = true
@@ -100,3 +117,6 @@ player.CharacterAdded:Connect(onCharacterAdded)
 if player.Character then
     onCharacterAdded(player.Character)
 end
+
+-- Start checking for boss existence in a separate thread
+task.spawn(checkBossEverySecond)
