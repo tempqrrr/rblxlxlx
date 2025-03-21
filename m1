@@ -1,5 +1,6 @@
 local remoteEvent = game.ReplicatedStorage:WaitForChild("Bridgenet2Main"):WaitForChild("dataRemoteEvent")
-local toggled = true
+
+local toggled = true  -- Set this to `true` to start, `false` to stop
 
 local args = {
     [1] = {
@@ -10,18 +11,23 @@ local args = {
     }
 }
 
-local function isBossActive()
-    return workspace:FindFirstChild("Entities") and #workspace.Entities:GetChildren() > 0
-end
-
 local function keepM1ing()
-    while toggled do
-        if not isBossActive() then
-            return
+    task.spawn(function()
+        while true do
+            task.wait(0.3)
+
+            local bossHRP = workspace:FindFirstChild("Entities") and getBossHRP()
+            if not bossHRP then
+                -- Boss doesn't exist, pause function
+                continue
+            end
+
+            if toggled then
+                remoteEvent:FireServer(unpack(args))
+                task.wait(0.1) -- Keep attack speed same as before
+            end
         end
-        remoteEvent:FireServer(unpack(args))
-        wait(0.1)
-    end
+    end)
 end
 
-task.spawn(keepM1ing)
+keepM1ing()
