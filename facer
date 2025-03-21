@@ -8,11 +8,7 @@ local Camera = game:GetService("Workspace").CurrentCamera
 local humanoid = nil
 local maxHealth = nil
 local isCamLocking = false
-local isFacingBoss = false
-local camLockConnection
-local faceBossConnection
 
--- Function to find the Boss's HumanoidRootPart
 local function getBossHRP()
     local entities = workspace:FindFirstChild("Entities")
     if not entities then return nil end
@@ -28,42 +24,48 @@ local function getBossHRP()
     return nil
 end
 
--- Function to lock the camera onto the boss (X & Z axes only)
 local function camLockOntoBoss()
     if isCamLocking then return end
     isCamLocking = true
 
-    camLockConnection = RunService.RenderStepped:Connect(function()
-        local bossHRP = getBossHRP()
-        if not bossHRP then
-            isCamLocking = false
-            camLockConnection:Disconnect()
-            return
-        end
+    task.spawn(function()
+        while true do
+            task.wait(0.3)
+            
+            local bossHRP = getBossHRP()
+            if not bossHRP then
+                -- Boss doesn't exist, pause function
+                isCamLocking = false
+                continue
+            end
+            
+            if humanoid and humanoid.Health < maxHealth then
+                isCamLocking = false
+                return
+            end
 
-        local camPos = Camera.CFrame.Position
-        local bossPos = bossHRP.Position
-        local targetPos = Vector3.new(bossPos.X, camPos.Y, bossPos.Z)
-        Camera.CFrame = CFrame.lookAt(camPos, targetPos)
+            local camPos = Camera.CFrame.Position
+            local bossPos = bossHRP.Position
+            local targetPos = Vector3.new(bossPos.X, camPos.Y, bossPos.Z)
+            Camera.CFrame = CFrame.lookAt(camPos, targetPos)
+        end
     end)
 end
 
--- Function to make the player face the boss (X & Z axes only)
 local function faceBoss()
-    if isFacingBoss then return end
-    isFacingBoss = true
+    task.spawn(function()
+        local character = player.Character or player.CharacterAdded:Wait()
+        local hrp = character:WaitForChild("HumanoidRootPart")
 
-    faceBossConnection = RunService.RenderStepped:Connect(function()
-        local bossHRP = getBossHRP()
-        local character = player.Character
-        if not bossHRP or not character then
-            isFacingBoss = false
-            faceBossConnection:Disconnect()
-            return
-        end
+        while true do
+            task.wait(0.3)
 
-        local hrp = character:FindFirstChild("HumanoidRootPart")
-        if hrp then
+            local bossHRP = getBossHRP()
+            if not bossHRP then
+                -- Boss doesn't exist, pause function
+                continue
+            end
+
             local playerPos = hrp.Position
             local bossPos = bossHRP.Position
             local targetPos = Vector3.new(bossPos.X, playerPos.Y, bossPos.Z)
@@ -72,17 +74,15 @@ local function faceBoss()
     end)
 end
 
--- Function to start cam lock on respawn
 local function startCamLockOnRespawn()
     player.CharacterAdded:Connect(function(character)
         humanoid = character:WaitForChild("Humanoid")
         maxHealth = humanoid.Health
-        task.spawn(camLockOntoBoss)
-        task.spawn(faceBoss)
+        camLockOntoBoss()
+        faceBoss()
     end)
 end
 
--- Start cam lock and facing when boss exists
 task.spawn(camLockOntoBoss)
 task.spawn(faceBoss)
 startCamLockOnRespawn()
