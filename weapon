@@ -1,9 +1,10 @@
--- Print message BEFORE spawning a separate thread
 print("Weapon module initialized")
 
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
+local isBossActive = true -- Flag to control script execution
 
+-- Function to find the boss's HumanoidRootPart
 local function getBossHRP()
     local entities = workspace:FindFirstChild("Entities")
     if not entities then return nil end
@@ -20,7 +21,7 @@ local function getBossHRP()
 end
 
 local function autoEquipWeapon()
-    while true do
+    while isBossActive do
         local bossHRP = getBossHRP()
         if bossHRP then
             local playerEntity = workspace.Entities:FindFirstChild(player.Name)
@@ -29,7 +30,6 @@ local function autoEquipWeapon()
 
             if toggle and toggle.Value == false and race and race.Value then
                 local args
-
                 if race.Value == "Human" then
                     args = {
                         [1] = {
@@ -61,5 +61,16 @@ local function autoEquipWeapon()
     end
 end
 
--- Start auto-equipping
+-- Function to check if the boss still exists every second
+local function checkBossEverySecond()
+    while task.wait(1) do
+        if not getBossHRP() then
+            print("[DEBUG] Boss no longer exists. Cancelling script...")
+            isBossActive = false
+            return
+        end
+    end
+end
+
+task.spawn(checkBossEverySecond)
 task.spawn(autoEquipWeapon)
