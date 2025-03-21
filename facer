@@ -1,88 +1,65 @@
 print("Facer module initialized")
 
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
+local player = game:GetService("Players").LocalPlayer
 local RunService = game:GetService("RunService")
-local Camera = game:GetService("Workspace").CurrentCamera
-
-local humanoid = nil
-local maxHealth = nil
-local isCamLocking = false
+local Camera = workspace.CurrentCamera
 
 local function getBossHRP()
+    local Players = game:GetService("Players")
     local entities = workspace:FindFirstChild("Entities")
     if not entities then return nil end
 
     for _, entity in ipairs(entities:GetChildren()) do
         if not Players:GetPlayerFromCharacter(entity) then
             local hrp = entity:FindFirstChild("HumanoidRootPart")
-            if hrp then
-                return hrp
-            end
+            if hrp then return hrp end
         end
     end
     return nil
 end
 
+local bossExists = false
+
+local function checkBossLoop()
+    while true do
+        bossExists = getBossHRP() ~= nil
+        task.wait(3) -- Check every 3 seconds
+    end
+end
+
 local function camLockOntoBoss()
-    if isCamLocking then return end
-    isCamLocking = true
-
-    task.spawn(function()
-        while true do
-            task.wait(0.3)
-            
+    while true do
+        if bossExists then
             local bossHRP = getBossHRP()
-            if not bossHRP then
-                -- Boss doesn't exist, pause function
-                isCamLocking = false
-                continue
+            if bossHRP then
+                local camPos = Camera.CFrame.Position
+                local bossPos = bossHRP.Position
+                local targetPos = Vector3.new(bossPos.X, camPos.Y, bossPos.Z)
+                Camera.CFrame = CFrame.lookAt(camPos, targetPos)
             end
-            
-            if humanoid and humanoid.Health < maxHealth then
-                isCamLocking = false
-                return
-            end
-
-            local camPos = Camera.CFrame.Position
-            local bossPos = bossHRP.Position
-            local targetPos = Vector3.new(bossPos.X, camPos.Y, bossPos.Z)
-            Camera.CFrame = CFrame.lookAt(camPos, targetPos)
         end
-    end)
+        task.wait(0.1)
+    end
 end
 
 local function faceBoss()
-    task.spawn(function()
-        local character = player.Character or player.CharacterAdded:Wait()
-        local hrp = character:WaitForChild("HumanoidRootPart")
+    local character = player.Character or player.CharacterAdded:Wait()
+    local hrp = character:WaitForChild("HumanoidRootPart")
 
-        while true do
-            task.wait(0.3)
-
+    while true do
+        if bossExists then
             local bossHRP = getBossHRP()
-            if not bossHRP then
-                -- Boss doesn't exist, pause function
-                continue
+            if bossHRP then
+                local playerPos = hrp.Position
+                local bossPos = bossHRP.Position
+                local targetPos = Vector3.new(bossPos.X, playerPos.Y, bossPos.Z)
+                hrp.CFrame = CFrame.lookAt(playerPos, targetPos)
             end
-
-            local playerPos = hrp.Position
-            local bossPos = bossHRP.Position
-            local targetPos = Vector3.new(bossPos.X, playerPos.Y, bossPos.Z)
-            hrp.CFrame = CFrame.lookAt(playerPos, targetPos)
         end
-    end)
+        task.wait(0.1)
+    end
 end
 
-local function startCamLockOnRespawn()
-    player.CharacterAdded:Connect(function(character)
-        humanoid = character:WaitForChild("Humanoid")
-        maxHealth = humanoid.Health
-        camLockOntoBoss()
-        faceBoss()
-    end)
-end
-
+task.spawn(checkBossLoop)
 task.spawn(camLockOntoBoss)
 task.spawn(faceBoss)
-startCamLockOnRespawn()
