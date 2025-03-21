@@ -11,11 +11,11 @@ local cooldownNoForceField = false
 local character = player.Character or player.CharacterAdded:Wait()
 local hrp = character:WaitForChild("HumanoidRootPart")
 
-local tweenSpeed = 0.8
+local tweenSpeed = 0.7
 local frontDistance = 9
 local verticalOffset = 0
 local retreatDistance = 30
-local downwardDistance = 200
+local downwardDistance = 150
 
 local function getBossHRP()
     local entities = workspace:FindFirstChild("Entities")
@@ -62,16 +62,15 @@ local function handleForceFieldCheck()
                 task.delay(2, function() cooldownForceField = false end)
 
             elseif not forceField and not cooldownNoForceField then
-                -- No ForceField, retreat
-                local direction = math.random(1, 2) == 1 and 1 or -1
-                local retreatPos = hrp.Position + (hrp.CFrame.LookVector * retreatDistance * direction)
-                tweenToPosition(retreatPos)
-                task.wait(1.1)
-                local downwardPos = Vector3.new(hrp.Position.X, hrp.Position.Y - downwardDistance, hrp.Position.Z)
-                tweenToPosition(downwardPos)
-                
-                cooldownNoForceField = true
-                task.delay(3, function() cooldownNoForceField = false end)
+    -- No ForceField, always retreat backwards
+    local retreatPos = hrp.Position - (hrp.CFrame.LookVector * retreatDistance)
+    tweenToPosition(retreatPos)
+    task.wait(1.1)
+    local downwardPos = Vector3.new(hrp.Position.X, hrp.Position.Y - downwardDistance, hrp.Position.Z)
+    tweenToPosition(downwardPos)
+    
+    cooldownNoForceField = true
+    task.delay(3, function() cooldownNoForceField = false end)
             end
         end
     end
