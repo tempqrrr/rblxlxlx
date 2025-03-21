@@ -1,6 +1,31 @@
-local remoteEvent = game.ReplicatedStorage:WaitForChild("Bridgenet2Main"):WaitForChild("dataRemoteEvent")
+print("M1 loop initialized")
 
-local toggled = true  -- Set this to `true` to start, `false` to stop
+local remoteEvent = game:GetService("ReplicatedStorage"):WaitForChild("Bridgenet2Main"):WaitForChild("dataRemoteEvent")
+
+local function getBossHRP()
+    local Players = game:GetService("Players")
+    local entities = workspace:FindFirstChild("Entities")
+    if not entities then return nil end
+
+    for _, entity in ipairs(entities:GetChildren()) do
+        if not Players:GetPlayerFromCharacter(entity) then
+            local hrp = entity:FindFirstChild("HumanoidRootPart")
+            if hrp then return hrp end
+        end
+    end
+    return nil
+end
+
+local bossExists = false
+
+local function checkBossLoop()
+    while true do
+        bossExists = getBossHRP() ~= nil
+        task.wait(3) -- Check every 3 seconds
+    end
+end
+
+local toggled = true
 
 local args = {
     [1] = {
@@ -12,22 +37,15 @@ local args = {
 }
 
 local function keepM1ing()
-    task.spawn(function()
-        while true do
+    while true do
+        if bossExists and toggled then
+            remoteEvent:FireServer(unpack(args))
+            task.wait(0.1)
+        else
             task.wait(0.3)
-
-            local bossHRP = workspace:FindFirstChild("Entities") and getBossHRP()
-            if not bossHRP then
-                -- Boss doesn't exist, pause function
-                continue
-            end
-
-            if toggled then
-                remoteEvent:FireServer(unpack(args))
-                task.wait(0.1) -- Keep attack speed same as before
-            end
         end
-    end)
+    end
 end
 
-keepM1ing()
+task.spawn(checkBossLoop)
+task.spawn(keepM1ing)
