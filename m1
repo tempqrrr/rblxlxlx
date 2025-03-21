@@ -1,31 +1,8 @@
-print("M1 loop initialized")
+local remoteEvent = game.ReplicatedStorage:WaitForChild("Bridgenet2Main"):WaitForChild("dataRemoteEvent")
+local player = game.Players.LocalPlayer
+local workspace = game:GetService("Workspace")
 
-local remoteEvent = game:GetService("ReplicatedStorage"):WaitForChild("Bridgenet2Main"):WaitForChild("dataRemoteEvent")
-
-local function getBossHRP()
-    local Players = game:GetService("Players")
-    local entities = workspace:FindFirstChild("Entities")
-    if not entities then return nil end
-
-    for _, entity in ipairs(entities:GetChildren()) do
-        if not Players:GetPlayerFromCharacter(entity) then
-            local hrp = entity:FindFirstChild("HumanoidRootPart")
-            if hrp then return hrp end
-        end
-    end
-    return nil
-end
-
-local bossExists = false
-
-local function checkBossLoop()
-    while true do
-        bossExists = getBossHRP() ~= nil
-        task.wait(3) -- Check every 3 seconds
-    end
-end
-
-local toggled = true
+local toggled = true  -- Set this to `true` to start, `false` to stop
 
 local args = {
     [1] = {
@@ -36,16 +13,35 @@ local args = {
     }
 }
 
-local function keepM1ing()
-    while true do
-        if bossExists and toggled then
-            remoteEvent:FireServer(unpack(args))
-            task.wait(0.1)
-        else
-            task.wait(0.3)
+-- Function to check if the boss exists
+local function getBossHRP()
+    local entitiesFolder = workspace:FindFirstChild("Entities")
+    if not entitiesFolder then return nil end
+
+    for _, entity in ipairs(entitiesFolder:GetChildren()) do
+        if not game.Players:GetPlayerFromCharacter(entity) then
+            local hrp = entity:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                return hrp
+            end
         end
+    end
+    return nil
+end
+
+-- Function to keep sending M1 arguments
+local function keepM1ing()
+    while toggled do
+        local bossHRP = getBossHRP()
+        
+        if bossHRP then
+            -- Boss exists, fire the M1 input
+            remoteEvent:FireServer(unpack(args))
+        end
+
+        wait(0.1)  -- Check every 0.1 seconds
     end
 end
 
-task.spawn(checkBossLoop)
-task.spawn(keepM1ing)
+-- Execute the function to keep sending M1 when the boss exists
+keepM1ing()
