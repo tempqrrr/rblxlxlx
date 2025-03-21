@@ -11,10 +11,10 @@ local cooldownToUnderground = false
 local character = player.Character or player.CharacterAdded:Wait()
 local hrp = character:WaitForChild("HumanoidRootPart")
 
-local tweenSpeed = 0.4
+local tweenSpeed = 0.6
 local frontDistance = 9
 local verticalOffset = 0
-local downwardDistance = 50
+local downwardDistance = 100
 
 local isBossActive = true -- This will track if the boss is still alive
 
