@@ -1,8 +1,9 @@
--- Print message BEFORE spawning a separate thread
 print("Weapon module initialized")
 
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local remoteEvent = ReplicatedStorage:WaitForChild("Bridgenet2Main"):WaitForChild("dataRemoteEvent")
 
 local function getBossHRP()
     local entities = workspace:FindFirstChild("Entities")
@@ -19,8 +20,12 @@ local function getBossHRP()
     return nil
 end
 
+local function isBossActive()
+    return getBossHRP() ~= nil
+end
+
 local function autoEquipWeapon()
-    while true do
+    while isBossActive() do
         local bossHRP = getBossHRP()
         if bossHRP then
             local playerEntity = workspace.Entities:FindFirstChild(player.Name)
@@ -53,13 +58,12 @@ local function autoEquipWeapon()
                 end
 
                 if args then
-                    game:GetService("ReplicatedStorage"):WaitForChild("Bridgenet2Main"):WaitForChild("dataRemoteEvent"):FireServer(unpack(args))
+                    remoteEvent:FireServer(unpack(args))
                 end
             end
         end
-        task.wait(1) -- Checks every 1 second
+        task.wait(1)
     end
 end
 
--- Start auto-equipping
 task.spawn(autoEquipWeapon)
