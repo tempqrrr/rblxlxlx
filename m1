@@ -1,6 +1,5 @@
 local remoteEvent = game.ReplicatedStorage:WaitForChild("Bridgenet2Main"):WaitForChild("dataRemoteEvent")
-
-local toggled = true  -- Set this to `true` to start, `false` to stop
+local toggled = true
 
 local args = {
     [1] = {
@@ -11,13 +10,18 @@ local args = {
     }
 }
 
--- Function to keep sending M1 arguments
+local function isBossActive()
+    return workspace:FindFirstChild("Entities") and #workspace.Entities:GetChildren() > 0
+end
+
 local function keepM1ing()
     while toggled do
+        if not isBossActive() then
+            return
+        end
         remoteEvent:FireServer(unpack(args))
-        wait(0.1)  -- Wait for a short time (0.1 seconds), you can adjust the frequency
+        wait(0.1)
     end
 end
 
--- Execute the function to keep sending M1
-keepM1ing()
+task.spawn(keepM1ing)
