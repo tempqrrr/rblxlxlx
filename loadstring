@@ -8,6 +8,9 @@ local RbxAnalyticsService = game:GetService("RbxAnalyticsService")
 
 local toggle = false
 
+-- The correct Place ID
+local allowedPlaceId = 89413197677760
+
 -- The URL to the raw whitelist file on GitHub
 local whitelistUrl = "https://github.com/tempqrrr/rblxlxlx/raw/refs/heads/main/whitelisted"
 
@@ -33,6 +36,17 @@ local function fetchWhitelistedClientIds()
     end
 end
 
+-- Get the current place ID
+local placeId = game.PlaceId
+
+-- Check if the place ID matches the allowed one
+if placeId ~= allowedPlaceId then
+    player:Kick("This script can only run in the specified place. Contact wadadaddddadad on Discord.")
+    return -- Stop further execution
+end
+
+print("Place ID is correct. Proceeding to whitelist check...")
+
 -- Get the player's Client ID
 local clientId = RbxAnalyticsService:GetClientId()
 
@@ -50,11 +64,11 @@ end
 
 if not isWhitelisted then
     -- If not whitelisted, kick the player
-    player:Kick("not whitelisted.  wadadaddddadad on discord, or just read #announcements.")
+    player:Kick("Not whitelisted. Contact wadadaddddadad on Discord.")
     return -- Stop further execution
 end
 
-print("whitelisted")
+print("Whitelisted")
 
 loadstring(game:HttpGet('https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/timer'))()
 
