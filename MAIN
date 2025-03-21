@@ -11,10 +11,10 @@ local cooldownNoForceField = false
 local character = player.Character or player.CharacterAdded:Wait()
 local hrp = character:WaitForChild("HumanoidRootPart")
 
-local tweenSpeed = 0.7
+local tweenSpeed = 0.6
 local frontDistance = 9
 local verticalOffset = 0
-local retreatDistance = 10
+local retreatDistance = 30
 local downwardDistance = 100
 
 local function getBossHRP()
@@ -47,7 +47,7 @@ local function tweenToPosition(position)
 end
 
 local function handleForceFieldCheck()
-    while task.wait(0.05) do
+    while task.wait(0.03) do
         local playerEntity = workspace.Entities:FindFirstChild(player.Name) -- Find the player's entity
         if playerEntity then
             local forceField = playerEntity:FindFirstChild("ForceField")
@@ -65,7 +65,7 @@ local function handleForceFieldCheck()
     -- No ForceField, always retreat backwards
     local retreatPos = hrp.Position - (hrp.CFrame.LookVector * retreatDistance)
     tweenToPosition(retreatPos)
-    task.wait(0.3)
+    task.wait(0.7)
     local downwardPos = Vector3.new(hrp.Position.X, hrp.Position.Y - downwardDistance, hrp.Position.Z)
     tweenToPosition(downwardPos)
     
