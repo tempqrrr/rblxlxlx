@@ -6,15 +6,14 @@ local TweenService = game:GetService("TweenService")
 local player = Players.LocalPlayer
 
 local bossHRP = nil
-local cooldownForceField = false
-local cooldownNoForceField = false
+local cooldownToBoss = false
+local cooldownToUnderground = false
 local character = player.Character or player.CharacterAdded:Wait()
 local hrp = character:WaitForChild("HumanoidRootPart")
 
 local tweenSpeed = 0.6
 local frontDistance = 9
 local verticalOffset = 0
-local retreatDistance = 30
 local downwardDistance = 100
 
 local function getBossHRP()
@@ -47,30 +46,27 @@ local function tweenToPosition(position)
 end
 
 local function handleForceFieldCheck()
-    while task.wait(0.03) do
+    while task.wait(0.015) do
         local playerEntity = workspace.Entities:FindFirstChild(player.Name) -- Find the player's entity
         if playerEntity then
             local forceField = playerEntity:FindFirstChild("ForceField")
 
-            if forceField and not cooldownForceField then
-                -- ForceField exists, go near the boss
+            if forceField and not cooldownToBoss then
+                -- Move to the boss if ForceField exists
                 if bossHRP then
                     local targetPos = bossHRP.Position + (bossHRP.CFrame.LookVector * frontDistance) + Vector3.new(0, verticalOffset, 0)
                     tweenToPosition(targetPos)
                 end
-                cooldownForceField = true
-                task.delay(2, function() cooldownForceField = false end)
+                cooldownToBoss = true
+                task.delay(3, function() cooldownToBoss = false end)
 
-            elseif not forceField and not cooldownNoForceField then
-    -- No ForceField, always retreat backwards
-    local retreatPos = hrp.Position - (hrp.CFrame.LookVector * retreatDistance)
-    tweenToPosition(retreatPos)
-    task.wait(0.7)
-    local downwardPos = Vector3.new(hrp.Position.X, hrp.Position.Y - downwardDistance, hrp.Position.Z)
-    tweenToPosition(downwardPos)
-    
-    cooldownNoForceField = true
-    task.delay(3, function() cooldownNoForceField = false end)
+            elseif not forceField and not cooldownToUnderground then
+                -- Move 100 studs downward
+                local downwardPos = Vector3.new(hrp.Position.X, hrp.Position.Y - downwardDistance, hrp.Position.Z)
+                tweenToPosition(downwardPos)
+
+                cooldownToUnderground = true
+                task.delay(4, function() cooldownToUnderground = false end)
             end
         end
     end
