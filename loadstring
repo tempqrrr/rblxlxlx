@@ -41,8 +41,12 @@ local placeId = game.PlaceId
 
 -- Check if the place ID matches the allowed one
 if placeId ~= allowedPlaceId then
-    player:Kick("This script can only run in the specified place. Contact wadadaddddadad on Discord.")
-    return -- Stop further execution
+    game.StarterGui:SetCore("SendNotification", {
+        Title = "Script Warning";
+        Text = "only works in boss raids as of yet until i make the gui";
+        Duration = 5;
+    })
+    return -- Just stop execution without kicking
 end
 
 print("Place ID is correct. Proceeding to whitelist check...")
