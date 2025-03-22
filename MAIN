@@ -11,7 +11,7 @@ local cooldownToUnderground = false
 local character = player.Character or player.CharacterAdded:Wait()
 local hrp = character:WaitForChild("HumanoidRootPart")
 
-local tweenSpeed = 0.6
+local tweenSpeed = 0.7
 local frontDistance = 9
 local verticalOffset = 0
 local downwardDistance = 100
@@ -48,7 +48,7 @@ local function tweenToPosition(position)
 end
 
 local function handleForceFieldCheck()
-    while task.wait(0.015) do
+    while task.wait(0.01) do
         if not isBossActive then
             return -- Stop the loop if the boss is not active
         end
@@ -72,7 +72,7 @@ local function handleForceFieldCheck()
                 tweenToPosition(downwardPos)
 
                 cooldownToUnderground = true
-                task.delay(4, function() cooldownToUnderground = false end)
+                task.delay(3, function() cooldownToUnderground = false end)
             end
         end
     end
