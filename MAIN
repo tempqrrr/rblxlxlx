@@ -48,7 +48,7 @@ local function tweenToPosition(position)
 end
 
 local function handleForceFieldCheck()
-    while task.wait(0.01) do
+    while task.wait(0.005) do
         if not isBossActive then
             return -- Stop the loop if the boss is not active
         end
