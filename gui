@@ -26,13 +26,13 @@ local function BOSSAUTOFARM(toggleState)
     print("Waiting for boss...")
     local entitiesFolder = workspace:FindFirstChild("Entities")
     if not entitiesFolder then
-        warn("Entities folder not found!")
+        warn("Entities folder not found")
         return
     end
     while #entitiesFolder:GetChildren() < 2 do
         task.wait(0.1)
     end
-    print("Boss spawned!")
+    print("boss spawned!")
 
     -- Execute scripts instantly
     coroutine.wrap(function()
@@ -120,7 +120,7 @@ local function BOSSAUTOFARM(toggleState)
     local function checkBossEverySecond()
         while bossAutoFarm and task.wait(1) do
             if not getBossHRP() then
-                print("[DEBUG] Boss no longer exists. Cancelling script...")
+                print("[DEBUG] Boss died")
                 isBossActive = false
                 return
             end
@@ -149,18 +149,18 @@ local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 -- Create GUI
 local Window = Rayfield:CreateWindow({
-   Name = "Ghoul re slaves hub",
+   Name = "Fatman fanclub",
    LoadingTitle = "Exps for a shitty ass game",
    LoadingSubtitle = "by wad",
-   Theme = "Serenity",
+   Theme = "Amethyst",
    ConfigurationSaving = {
       Enabled = true,
-      FolderName = "waad",
-      FileName = "waad"
+      FolderName = "waadghoulre",
+      FileName = "wadadadad"
    }
 })
 
-local BossTab = Window:CreateTab("Boss Autofarm", 4483362458)
+local BossTab = Window:CreateTab("Boss Autofarm", nil)
 local Section = BossTab:CreateSection("Boss Toggle")
 
 -- Boss AutoFarm Toggle
@@ -174,17 +174,8 @@ local Toggle = BossTab:CreateToggle({
    end,
 })
 
--- Boss Check Speed Input
-local Input = BossTab:CreateInput({
-   Name = "Boss check speed",
-   CurrentValue = tostring(forcefieldCheckSpeed),
-   PlaceholderText = "Enter speed",
-   RemoveTextAfterFocusLost = false,
-   Flag = "Input1",
-   Callback = function(Text)
-       forcefieldCheckSpeed = tonumber(Text) or forcefieldCheckSpeed
-   end,
-})
+local Divider = BossTab:CreateDivider()
+local Section = BossTab:CreateSection("Distance settings")
 
 -- Boss Distance Slider
 local Slider = BossTab:CreateSlider({
@@ -212,6 +203,9 @@ local Slider = BossTab:CreateSlider({
    end,
 })
 
+local Divider = BossTab:CreateDivider()
+local Section = BossTab:CreateSection("Speed settings")
+
 -- Boss TP Speed Slider
 local Slider = BossTab:CreateSlider({
    Name = "Boss TP Speed",
@@ -237,3 +231,17 @@ local Slider = BossTab:CreateSlider({
        downTweenSpeed = Value
    end,
 })
+
+-- Boss Check Speed Input
+local Input = BossTab:CreateInput({
+   Name = "Boss check speed",
+   CurrentValue = tostring(forcefieldCheckSpeed),
+   PlaceholderText = "Enter speed",
+   RemoveTextAfterFocusLost = false,
+   Flag = "Input1",
+   Callback = function(Text)
+       forcefieldCheckSpeed = tonumber(Text) or forcefieldCheckSpeed
+   end,
+})
+
+local Divider = BossTab:CreateDivider()
