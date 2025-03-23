@@ -1,0 +1,239 @@
+-- Local Config Variables
+local bossAutoFarm = false
+local frontDistance = 9
+local downwardDistance = 120
+local bossTweenSpeed = 0.6
+local downTweenSpeed = 0.6
+local forcefieldCheckSpeed = 0.015
+
+-- Services
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local player = Players.LocalPlayer
+local workspace = game:GetService("Workspace")
+
+-- Function to handle Boss Auto-Farm
+local function BOSSAUTOFARM(toggleState)
+    bossAutoFarm = toggleState
+    if not bossAutoFarm then
+        print("[DEBUG] Boss Auto-Farm DISABLED")
+        return
+    end
+
+    print("[DEBUG] Boss Auto-Farm ENABLED")
+
+    -- Wait for boss to spawn
+    print("Waiting for boss...")
+    local entitiesFolder = workspace:FindFirstChild("Entities")
+    if not entitiesFolder then
+        warn("Entities folder not found!")
+        return
+    end
+    while #entitiesFolder:GetChildren() < 2 do
+        task.wait(0.1)
+    end
+    print("Boss spawned!")
+
+    -- Execute scripts instantly
+    coroutine.wrap(function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/weapon"))()
+    end)()
+    coroutine.wrap(function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/m1"))()
+    end)()
+    coroutine.wrap(function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/facer"))()
+    end)()
+    coroutine.wrap(function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/roller"))()
+    end)()
+    coroutine.wrap(function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/killautomatic"))()
+    end)()
+    
+    -- 1 second delay before starting auto-farm
+    task.wait(1)
+
+    -- Variables
+    local bossHRP = nil
+    local cooldownToBoss = false
+    local cooldownToUnderground = false
+    local character = player.Character or player.CharacterAdded:Wait()
+    local hrp = character:WaitForChild("HumanoidRootPart")
+    local isBossActive = true
+
+    -- Function to get boss HRP
+    local function getBossHRP()
+        if not entitiesFolder then return nil end
+        for _, entity in ipairs(entitiesFolder:GetChildren()) do
+            if not Players:GetPlayerFromCharacter(entity) then
+                local hrp = entity:FindFirstChild("HumanoidRootPart")
+                if hrp then return hrp end
+            end
+        end
+        return nil
+    end
+
+    -- Function to tween player to a position
+    local function tweenToPosition(position, speed)
+        local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+        if root and root.Parent then
+            local tween = TweenService:Create(root, TweenInfo.new(speed, Enum.EasingStyle.Linear), {CFrame = CFrame.new(position)})
+            tween:Play()
+        end
+    end
+
+    -- ForceField check logic
+    local function handleForceFieldCheck()
+        while bossAutoFarm and task.wait(forcefieldCheckSpeed) do
+            if not isBossActive then return end
+            local playerEntity = workspace.Entities:FindFirstChild(player.Name)
+            if playerEntity then
+                local forceField = playerEntity:FindFirstChild("ForceField")
+                if forceField and not cooldownToBoss then
+                    if bossHRP then
+                        local targetPos = bossHRP.Position + (bossHRP.CFrame.LookVector * frontDistance)
+                        tweenToPosition(targetPos, bossTweenSpeed)
+                    end
+                    cooldownToBoss = true
+                    task.delay(3, function() cooldownToBoss = false end)
+                elseif not forceField and not cooldownToUnderground then
+                    local downwardPos = Vector3.new(hrp.Position.X, hrp.Position.Y - downwardDistance, hrp.Position.Z)
+                    tweenToPosition(downwardPos, downTweenSpeed)
+                    cooldownToUnderground = true
+                    task.delay(4, function() cooldownToUnderground = false end)
+                end
+            end
+        end
+    end
+
+    -- Character respawn logic
+    local function onCharacterAdded(character)
+        task.wait(3)
+        bossHRP = getBossHRP()
+        if bossAutoFarm then
+            task.spawn(handleForceFieldCheck)
+        end
+    end
+
+    -- Function to check boss existence
+    local function checkBossEverySecond()
+        while bossAutoFarm and task.wait(1) do
+            if not getBossHRP() then
+                print("[DEBUG] Boss no longer exists. Cancelling script...")
+                isBossActive = false
+                return
+            end
+        end
+    end
+
+    -- Start the autofarm logic
+    bossHRP = getBossHRP()
+    if bossHRP then 
+        local targetPosition = bossHRP.Position + (bossHRP.CFrame.LookVector * frontDistance)
+        tweenToPosition(targetPosition, bossTweenSpeed)
+    end
+
+    task.spawn(handleForceFieldCheck)
+    task.spawn(checkBossEverySecond)
+
+    player.CharacterAdded:Connect(onCharacterAdded)
+    if player.Character then
+        onCharacterAdded(player.Character)
+    end
+end
+
+
+-- Load Rayfield
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+-- Create GUI
+local Window = Rayfield:CreateWindow({
+   Name = "Ghoul re slaves hub",
+   LoadingTitle = "Exps for a shitty ass game",
+   LoadingSubtitle = "by wad",
+   Theme = "Serenity",
+   ConfigurationSaving = {
+      Enabled = true,
+      FolderName = "waad",
+      FileName = "waad"
+   }
+})
+
+local BossTab = Window:CreateTab("Boss Autofarm", 4483362458)
+local Section = BossTab:CreateSection("Boss Toggle")
+
+-- Boss AutoFarm Toggle
+local Toggle = BossTab:CreateToggle({
+   Name = "Boss Autofarm",
+   CurrentValue = false,
+   Flag = "Toggle1",
+   Callback = function(Value)
+       bossAutoFarm = Value
+       BOSSAUTOFARM(Value)
+   end,
+})
+
+-- Boss Check Speed Input
+local Input = BossTab:CreateInput({
+   Name = "Boss check speed",
+   CurrentValue = tostring(forcefieldCheckSpeed),
+   PlaceholderText = "Enter speed",
+   RemoveTextAfterFocusLost = false,
+   Flag = "Input1",
+   Callback = function(Text)
+       forcefieldCheckSpeed = tonumber(Text) or forcefieldCheckSpeed
+   end,
+})
+
+-- Boss Distance Slider
+local Slider = BossTab:CreateSlider({
+   Name = "Boss Distance",
+   Range = {0, 30},
+   Increment = 1,
+   Suffix = "Studs",
+   CurrentValue = frontDistance,
+   Flag = "Slider1",
+   Callback = function(Value)
+       frontDistance = Value
+   end,
+})
+
+-- Down Distance Slider
+local Slider = BossTab:CreateSlider({
+   Name = "Down Distance",
+   Range = {0, 200},
+   Increment = 5,
+   Suffix = "Studs",
+   CurrentValue = downwardDistance,
+   Flag = "Slider2",
+   Callback = function(Value)
+       downwardDistance = Value
+   end,
+})
+
+-- Boss TP Speed Slider
+local Slider = BossTab:CreateSlider({
+   Name = "Boss TP Speed",
+   Range = {0, 2},
+   Increment = 0.1,
+   Suffix = "Seconds",
+   CurrentValue = bossTweenSpeed,
+   Flag = "Slider3",
+   Callback = function(Value)
+       bossTweenSpeed = Value
+   end,
+})
+
+-- Down TP Speed Slider
+local Slider = BossTab:CreateSlider({
+   Name = "Down TP Speed",
+   Range = {0, 2},
+   Increment = 0.1,
+   Suffix = "Seconds",
+   CurrentValue = downTweenSpeed,
+   Flag = "Slider4",
+   Callback = function(Value)
+       downTweenSpeed = Value
+   end,
+})
