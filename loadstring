@@ -1,20 +1,11 @@
-local userInputService = game:GetService("UserInputService")
 local players = game:GetService("Players")
 local player = players.LocalPlayer
-local mouse = player:GetMouse()
-local entitiesFolder = workspace:FindFirstChild("Entities") -- Get Entities folder
 local HttpService = game:GetService("HttpService")
 local RbxAnalyticsService = game:GetService("RbxAnalyticsService")
 
-local toggle = false
-
--- The correct Place ID
 local allowedPlaceId = 89413197677760
-
--- The URL to the raw whitelist file on GitHub
 local whitelistUrl = "https://github.com/tempqrrr/rblxlxlx/raw/refs/heads/main/whitelisted"
 
--- Function to notify the player
 local function notify(message)
     game.StarterGui:SetCore("SendNotification", {
         Title = "Script Notification";
@@ -23,41 +14,23 @@ local function notify(message)
     })
 end
 
--- Fetch the whitelisted Client IDs from the raw URL
 local function fetchWhitelistedClientIds()
     local success, response = pcall(function()
         return loadstring(game:HttpGet(whitelistUrl))()
     end)
-
-    if success and type(response) == "table" then
-        return response
-    else
-        return {} -- Return empty table if failed
-    end
+    return success and type(response) == "table" and response or {}
 end
 
--- Get the current place ID
-local placeId = game.PlaceId
-
--- Check if the place ID matches the allowed one
-if placeId ~= allowedPlaceId then
-    game.StarterGui:SetCore("SendNotification", {
-        Title = "Script Warning";
-        Text = "only works in boss raids as of yet until i make the gui";
-        Duration = 5;
-    })
-    return -- Just stop execution without kicking
+if game.PlaceId ~= allowedPlaceId then
+    notify("Only works in boss raids as of now.")
+    return
 end
 
-print("Place ID is correct. Proceeding to whitelist check...")
+print("Place ID is correct. Checking whitelist...")
 
--- Get the player's Client ID
 local clientId = RbxAnalyticsService:GetClientId()
-
--- Table to store whitelisted Client IDs
 local whitelistedClientIds = fetchWhitelistedClientIds()
 
--- Check if the current player's Client ID is whitelisted
 local isWhitelisted = false
 for _, id in pairs(whitelistedClientIds) do
     if clientId == id then
@@ -67,59 +40,9 @@ for _, id in pairs(whitelistedClientIds) do
 end
 
 if not isWhitelisted then
-    -- If not whitelisted, kick the player
     player:Kick("Not whitelisted. Contact wadadaddddadad on Discord.")
-    return -- Stop further execution
-end
-
-print("Whitelisted")
-
-loadstring(game:HttpGet('https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/timer'))()
-
-print("Waiting")
-
-local entitiesFolder = workspace:FindFirstChild("Entities")
-
-if not entitiesFolder then
-    warn("Entities folder not found!")
     return
 end
 
--- Function to wait until there are at least 2 entities
-local function waitForEntities()
-    while #entitiesFolder:GetChildren() < 2 do
-        task.wait(0.1) -- Check every 0.1 seconds
-    end
-end
-
--- Wait until there are at least 2 entities
-waitForEntities()
-
--- Execute all the scripts simultaneously using coroutines
-coroutine.wrap(function()
-    loadstring(game:HttpGet('https://pastebin.com/raw/fk7EDDLd'))()
-end)()
-
-coroutine.wrap(function()
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/MAIN"))()
-end)()
-
-coroutine.wrap(function()
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/weapon"))()
-end)()
-
-coroutine.wrap(function()
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/m1"))()
-end)()
-
-coroutine.wrap(function()
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/facer"))()
-end)()
-
-coroutine.wrap(function()
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/roller"))()
-end)()
-
-coroutine.wrap(function()
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/killautomatic"))()
-end)()
+print("Whitelisted. Executing script...")
+loadstring(game:HttpGet('https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/gui'))()
