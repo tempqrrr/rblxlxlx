@@ -1,5 +1,6 @@
 -- Local Config Variables
 local bossAutoFarm = false
+local bossInstakill = false -- New variable to track if Instakill is enabled
 local frontDistance = 9
 local downwardDistance = 120
 local bossTweenSpeed = 0.6
@@ -50,7 +51,7 @@ local function BOSSAUTOFARM(toggleState)
     coroutine.wrap(function()
         loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/killautomatic"))()
     end)()
-    
+
     -- 1 second delay before starting auto-farm
     task.wait(1)
 
@@ -143,6 +144,39 @@ local function BOSSAUTOFARM(toggleState)
     end
 end
 
+-- Function to handle Boss Instakill
+local function bossInstakill()
+    local entitiesFolder = workspace:FindFirstChild("Entities")
+    if not entitiesFolder then
+        warn("Entities folder not found")
+        return
+    end
+
+    -- Wait for boss to spawn
+    while #entitiesFolder:GetChildren() < 2 do
+        task.wait(0.1)
+    end
+
+    print("Boss spawned for Instakill!")
+
+    -- Start checking boss health
+    task.spawn(function()
+        while bossAutoFarm and bossInstakill do
+            local bossHumanoid = nil
+            for _, entity in ipairs(entitiesFolder:GetChildren()) do
+                if not Players:GetPlayerFromCharacter(entity) then
+                    bossHumanoid = entity:FindFirstChildOfClass("Humanoid")
+                    if bossHumanoid and bossHumanoid.Health < 2000 then
+                        bossHumanoid.Health = -1 -- Instakill the boss
+                        print("Boss Instakilled!")
+                        return
+                    end
+                end
+            end
+            task.wait(0.5) -- Wait before checking again
+        end
+    end)
+end
 
 -- Load Rayfield
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
@@ -164,7 +198,7 @@ local BossTab = Window:CreateTab("Boss Autofarm", nil)
 local Section = BossTab:CreateSection("Boss Toggle")
 
 -- Boss AutoFarm Toggle
-local Toggle = BossTab:CreateToggle({
+local ToggleAutoFarm = BossTab:CreateToggle({
    Name = "Boss Autofarm",
    CurrentValue = false,
    Flag = "Toggle1",
@@ -173,6 +207,21 @@ local Toggle = BossTab:CreateToggle({
        BOSSAUTOFARM(Value)
    end,
 })
+
+-- Boss Instakill Toggle
+local ToggleInstakill = BossTab:CreateToggle({
+   Name = "Boss Instakill",
+   CurrentValue = false,
+   Flag = "Toggle2",
+   Callback = function(Value)
+       bossInstakill = Value
+       if bossAutoFarm and bossInstakill then
+           bossInstakill()  -- Start instakill if both are enabled
+       end
+   end,
+})
+
+-- The rest of your settings (Distance, Speed, etc.)
 
 local Divider = BossTab:CreateDivider()
 local Section = BossTab:CreateSection("Distance settings")
