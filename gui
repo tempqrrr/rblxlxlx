@@ -90,7 +90,7 @@ local function tryStartInstakill()
             end
             task.wait(0.5)
         end
-    end)s
+    end)
 end
 
 -- Helper scripts executor
