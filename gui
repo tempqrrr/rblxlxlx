@@ -1,6 +1,6 @@
 -- Local Config Variables
 local bossAutoFarm = false
-local bossInstakill = false -- New variable to track if Instakill is enabled
+local bossInstakill = false
 local frontDistance = 9
 local downwardDistance = 120
 local bossTweenSpeed = 0.6
@@ -12,6 +12,40 @@ local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local player = Players.LocalPlayer
 local workspace = game:GetService("Workspace")
+
+-- Function to handle Boss Instakill
+local function tryStartInstakill()
+    if not (bossAutoFarm and bossInstakill) then return end
+
+    local entitiesFolder = workspace:FindFirstChild("Entities")
+    if not entitiesFolder then
+        warn("Entities folder not found")
+        return
+    end
+
+    -- Wait for boss to spawn
+    while #entitiesFolder:GetChildren() < 2 do
+        task.wait(0.1)
+    end
+
+    print("Boss spawned for Instakill!")
+
+    task.spawn(function()
+        while bossAutoFarm and bossInstakill do
+            for _, entity in ipairs(entitiesFolder:GetChildren()) do
+                if not Players:GetPlayerFromCharacter(entity) then
+                    local bossHumanoid = entity:FindFirstChildOfClass("Humanoid")
+                    if bossHumanoid and bossHumanoid.Health < 2000 then
+                        bossHumanoid.Health = -1
+                        print("Boss Instakilled!")
+                        return
+                    end
+                end
+            end
+            task.wait(0.5)
+        end
+    end)
+end
 
 -- Function to handle Boss Auto-Farm
 local function BOSSAUTOFARM(toggleState)
@@ -52,6 +86,9 @@ local function BOSSAUTOFARM(toggleState)
     -- 1 second delay before starting auto-farm
     task.wait(1)
 
+    -- Attempt Instakill if both toggles are active
+    tryStartInstakill()
+
     -- Variables
     local bossHRP = nil
     local cooldownToBoss = false
@@ -60,7 +97,6 @@ local function BOSSAUTOFARM(toggleState)
     local hrp = character:WaitForChild("HumanoidRootPart")
     local isBossActive = true
 
-    -- Function to get boss HRP
     local function getBossHRP()
         if not entitiesFolder then return nil end
         for _, entity in ipairs(entitiesFolder:GetChildren()) do
@@ -72,7 +108,6 @@ local function BOSSAUTOFARM(toggleState)
         return nil
     end
 
-    -- Function to tween player to a position
     local function tweenToPosition(position, speed)
         local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
         if root and root.Parent then
@@ -81,7 +116,6 @@ local function BOSSAUTOFARM(toggleState)
         end
     end
 
-    -- ForceField check logic
     local function handleForceFieldCheck()
         while bossAutoFarm and task.wait(forcefieldCheckSpeed) do
             if not isBossActive then return end
@@ -105,7 +139,6 @@ local function BOSSAUTOFARM(toggleState)
         end
     end
 
-    -- Character respawn logic
     local function onCharacterAdded(character)
         task.wait(3)
         bossHRP = getBossHRP()
@@ -114,7 +147,6 @@ local function BOSSAUTOFARM(toggleState)
         end
     end
 
-    -- Function to check boss existence
     local function checkBossEverySecond()
         while bossAutoFarm and task.wait(1) do
             if not getBossHRP() then
@@ -125,7 +157,6 @@ local function BOSSAUTOFARM(toggleState)
         end
     end
 
-    -- Start the autofarm logic
     bossHRP = getBossHRP()
     if bossHRP then 
         local targetPosition = bossHRP.Position + (bossHRP.CFrame.LookVector * frontDistance)
@@ -139,40 +170,6 @@ local function BOSSAUTOFARM(toggleState)
     if player.Character then
         onCharacterAdded(player.Character)
     end
-end
-
--- Function to handle Boss Instakill
-local function bossInstakill()
-    local entitiesFolder = workspace:FindFirstChild("Entities")
-    if not entitiesFolder then
-        warn("Entities folder not found")
-        return
-    end
-
-    -- Wait for boss to spawn
-    while #entitiesFolder:GetChildren() < 2 do
-        task.wait(0.1)
-    end
-
-    print("Boss spawned for Instakill!")
-
-    -- Start checking boss health
-    task.spawn(function()
-        while bossAutoFarm and bossInstakill do
-            local bossHumanoid = nil
-            for _, entity in ipairs(entitiesFolder:GetChildren()) do
-                if not Players:GetPlayerFromCharacter(entity) then
-                    bossHumanoid = entity:FindFirstChildOfClass("Humanoid")
-                    if bossHumanoid and bossHumanoid.Health < 2000 then
-                        bossHumanoid.Health = -1 -- Instakill the boss
-                        print("Boss Instakilled!")
-                        return
-                    end
-                end
-            end
-            task.wait(0.5) -- Wait before checking again
-        end
-    end)
 end
 
 -- Load Rayfield
@@ -213,18 +210,16 @@ local ToggleInstakill = BossTab:CreateToggle({
    Callback = function(Value)
        bossInstakill = Value
        if bossAutoFarm and bossInstakill then
-           bossInstakill()  -- Start instakill if both are enabled
+           tryStartInstakill()
        end
    end,
 })
 
--- The rest of your settings (Distance, Speed, etc.)
-
+-- Distance Sliders
 local Divider = BossTab:CreateDivider()
-local Section = BossTab:CreateSection("Distance settings")
+BossTab:CreateSection("Distance settings")
 
--- Boss Distance Slider
-local Slider = BossTab:CreateSlider({
+BossTab:CreateSlider({
    Name = "Boss Distance",
    Range = {0, 30},
    Increment = 1,
@@ -236,8 +231,7 @@ local Slider = BossTab:CreateSlider({
    end,
 })
 
--- Down Distance Slider
-local Slider = BossTab:CreateSlider({
+BossTab:CreateSlider({
    Name = "Down Distance",
    Range = {0, 200},
    Increment = 5,
@@ -249,11 +243,11 @@ local Slider = BossTab:CreateSlider({
    end,
 })
 
+-- Speed Sliders
 local Divider = BossTab:CreateDivider()
-local Section = BossTab:CreateSection("Speed settings")
+BossTab:CreateSection("Speed settings")
 
--- Boss TP Speed Slider
-local Slider = BossTab:CreateSlider({
+BossTab:CreateSlider({
    Name = "Boss TP Speed",
    Range = {0, 2},
    Increment = 0.1,
@@ -265,8 +259,7 @@ local Slider = BossTab:CreateSlider({
    end,
 })
 
--- Down TP Speed Slider
-local Slider = BossTab:CreateSlider({
+BossTab:CreateSlider({
    Name = "Down TP Speed",
    Range = {0, 2},
    Increment = 0.1,
@@ -278,8 +271,8 @@ local Slider = BossTab:CreateSlider({
    end,
 })
 
--- Boss Check Speed Input
-local Input = BossTab:CreateInput({
+-- Check Speed Input
+BossTab:CreateInput({
    Name = "Boss check speed",
    CurrentValue = tostring(forcefieldCheckSpeed),
    PlaceholderText = "Enter speed",
