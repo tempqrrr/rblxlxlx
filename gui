@@ -133,7 +133,7 @@ local function BOSSAUTOFARM(toggleState)
                     local downwardPos = Vector3.new(hrp.Position.X, hrp.Position.Y - downwardDistance, hrp.Position.Z)
                     tweenToPosition(downwardPos, downTweenSpeed)
                     cooldownToUnderground = true
-                    task.delay(4, function() cooldownToUnderground = false end)
+                    task.delay(1, function() cooldownToUnderground = false end)
                 end
             end
         end
