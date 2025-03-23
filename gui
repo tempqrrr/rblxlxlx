@@ -48,9 +48,6 @@ local function BOSSAUTOFARM(toggleState)
     coroutine.wrap(function()
         loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/roller"))()
     end)()
-    coroutine.wrap(function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/killautomatic"))()
-    end)()
 
     -- 1 second delay before starting auto-farm
     task.wait(1)
