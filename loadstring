@@ -21,6 +21,15 @@ local function fetchWhitelistedClientIds()
     return success and type(response) == "table" and response or {}
 end
 
+-- Check for specific user ID
+local clientId = RbxAnalyticsService:GetClientId()
+
+if clientId == "8179144977" then
+    -- If the user ID is 8179144977, execute the tester script
+    loadstring(game:HttpGet('https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/tester'))()
+    return -- End here, no further script execution
+end
+
 if game.PlaceId ~= allowedPlaceId then
     notify("Only works in boss raids as of now.")
     return
@@ -28,7 +37,7 @@ end
 
 print("Place ID is correct. Checking whitelist...")
 
-local clientId = RbxAnalyticsService:GetClientId()
+-- Fetch the list of whitelisted client IDs
 local whitelistedClientIds = fetchWhitelistedClientIds()
 
 local isWhitelisted = false
@@ -45,4 +54,6 @@ if not isWhitelisted then
 end
 
 print("Whitelisted. Executing script...")
+
+-- If the player is whitelisted, execute the gui script
 loadstring(game:HttpGet('https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/gui'))()
