@@ -11,14 +11,14 @@ local position = humanoidRootPart.Position
 -- Set the baseplate dimensions
 local width = 2000  -- X and Z dimensions of the baseplate
 local depth = 2000
-local height = 5  -- The baseplate's thickness (going downwards)
+local height = 10  -- The baseplate's thickness (going downwards)
 
 -- The position where the baseplate should be placed (X, Y, Z)
 local baseplatePosition = Vector3.new(position.X, position.Y - height, position.Z)
 
 -- Create a part for the baseplate
 local baseplate = Instance.new("Part")
-baseplate.Size = Vector3.new(width, height, depth)
+baseplate.Size = Vector3.new(width, height + 5, depth)
 baseplate.Position = baseplatePosition
 baseplate.Anchored = true
 baseplate.BrickColor = BrickColor.new("Institutional white")  -- Baseplate color
