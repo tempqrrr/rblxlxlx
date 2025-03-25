@@ -24,7 +24,7 @@ end
 -- Check for specific user ID
 local clientId = RbxAnalyticsService:GetClientId()
 
-if clientId == "8179144977" then
+if clientId == "4381864804" then
     -- If the user ID is 8179144977, execute the tester script
     loadstring(game:HttpGet('https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/tester'))()
     return -- End here, no further script execution
