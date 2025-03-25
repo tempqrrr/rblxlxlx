@@ -1,278 +1,333 @@
--- Local Config Variables
-local bossAutoFarm = false
-local bossInstakill = false
-local frontDistance = 9
-local downwardDistance = 120
-local bossTweenSpeed = 0.6
-local downTweenSpeed = 0.6
-local retreatTime = 2
+--[[
+    ✅ Boss Autofarm Script with 4 Secondary Tasks + Respawn Handling + One-Time Baseplate Setup
+    - Auto TP
+    - Auto M1
+    - Auto Kill
+    - Auto Face
+    - Auto Equip Weapon
+    - Respawn-safe & performance optimized
+--]]
 
--- Cooldown flags
-local canTweenToBoss = true
-local canRetreat = true
+local autoboss = false
+local bossVerticalOffset = 0
+local bossHorizontalOffset = 2
+local checkspeed = 0.08
 
--- Services
-local Players = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
-local player = Players.LocalPlayer
-local workspace = game:GetService("Workspace")
+local autofarmTask, bossWaitTask = nil, nil
+local taskHandles = {}
+local isBossActive = false
+local cachedBossHRP = nil
 
--- Helper to tween player
-local function tweenToPosition(position, speed)
-    local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-    if root and root.Parent then
-        local tween = TweenService:Create(root, TweenInfo.new(speed, Enum.EasingStyle.Linear), {CFrame = CFrame.new(position)})
-        tween:Play()
-    end
+local player = game.Players.LocalPlayer
+local entities = workspace:WaitForChild("Entities")
+local forceFieldPath = nil
+local humanoidRootPart = nil
+local lastBossTPTime = 0
+local lastVoidTPTime = 0
+local lastBoss29Time = 0
+local bossdistance = 0
+
+-- Utility: Get ForceField path
+local function getForceFieldPath()
+    local name = player.Name
+    return entities:FindFirstChild(name) and entities[name]:FindFirstChild("ForceField")
 end
 
--- Get Boss HRP
+-- Utility: Get Boss HRP with caching
 local function getBossHRP()
-    local entitiesFolder = workspace:FindFirstChild("Entities")
-    if not entitiesFolder then return nil end
-    for _, entity in ipairs(entitiesFolder:GetChildren()) do
-        if not Players:GetPlayerFromCharacter(entity) then
+    if cachedBossHRP and cachedBossHRP.Parent then
+        return cachedBossHRP
+    end
+    for _, entity in pairs(entities:GetChildren()) do
+        if not game.Players:FindFirstChild(entity.Name) then
             local hrp = entity:FindFirstChild("HumanoidRootPart")
-            if hrp then return hrp end
+            if hrp then
+                cachedBossHRP = hrp
+                return hrp
+            end
         end
     end
     return nil
 end
 
--- Retreat underground
-local function retreatDown()
-    if not canRetreat then return end
-    canRetreat = false
-    local character = player.Character
-    if character then
-        local hrp = character:FindFirstChild("HumanoidRootPart")
-        if hrp then
-            local downPos = Vector3.new(hrp.Position.X, hrp.Position.Y - downwardDistance, hrp.Position.Z)
-            tweenToPosition(downPos, downTweenSpeed)
+-- Utility: Get Boss Humanoid
+local function getBossHumanoid()
+    for _, entity in ipairs(entities:GetChildren()) do
+        if not game.Players:GetPlayerFromCharacter(entity) then
+            local hum = entity:FindFirstChildOfClass("Humanoid")
+            if hum then
+                return hum
+            end
         end
     end
-    task.delay(3, function() canRetreat = true end)
+    return nil
 end
 
--- Try to move to boss
-local function moveToBoss()
-    if not canTweenToBoss then return end
-    canTweenToBoss = false
-    local bossHRP = getBossHRP()
-    if bossHRP then
-        local targetPosition = bossHRP.Position + (bossHRP.CFrame.LookVector * frontDistance)
-        tweenToPosition(targetPosition, bossTweenSpeed)
-    end
-    task.delay(2, function() canTweenToBoss = true end)
+-- Bypass Dash
+local function tpbypass()
+    local dashargs = {
+        [1] = {
+            [1] = { ["Module"] = "Dash" },
+            [2] = "\5"
+        }
+    }
+    game.ReplicatedStorage:WaitForChild("Bridgenet2Main"):WaitForChild("dataRemoteEvent"):FireServer(unpack(dashargs))
 end
 
--- Boss Instakill
-local function tryStartInstakill()
-    if not (bossAutoFarm and bossInstakill) then return end
+-- Teleport
+local function tp(pos)
+    if not humanoidRootPart then return end
+    local offset = Vector3.new(bossHorizontalOffset, bossVerticalOffset, 0)
+    humanoidRootPart.CFrame = CFrame.new(pos + offset)
+end
 
-    local entitiesFolder = workspace:FindFirstChild("Entities")
-    if not entitiesFolder then
-        warn("Entities folder not found")
-        return
+-- Cooldown-based TP logic
+local function bosstp31()
+    local boss = getBossHRP()
+    if not boss then return end
+    tpbypass()
+    task.wait(0.005)
+    tp(boss.Position)
+end
+
+local function bosstp29()
+    local boss = getBossHRP()
+    if not boss then return end
+    local yDiff = math.abs(humanoidRootPart.Position.Y - boss.Position.Y)
+    local y = (yDiff <= 4 and humanoidRootPart.Position.Y or boss.Position.Y) + bossVerticalOffset
+    local offsetPos = Vector3.new(boss.Position.X + bossHorizontalOffset, y, boss.Position.Z)
+    humanoidRootPart.CFrame = CFrame.new(offsetPos)
+end
+
+-- Distance Calculation
+local function updateBossDistance()
+    local boss = getBossHRP()
+    if boss then
+        bossdistance = (humanoidRootPart.Position - boss.Position).Magnitude
     end
+end
 
-    task.spawn(function()
-        while bossAutoFarm and bossInstakill do
-            for _, entity in ipairs(entitiesFolder:GetChildren()) do
-                if not Players:GetPlayerFromCharacter(entity) then
-                    local bossHumanoid = entity:FindFirstChildOfClass("Humanoid")
-                    if bossHumanoid and bossHumanoid.Health < 2000 then
-                        bossHumanoid.Health = -1
-                        print("bos Instakilled")
-                        return
-                    end
+-- ForceField Handler
+local function ffhandler()
+    forceFieldPath = getForceFieldPath()
+    if forceFieldPath then
+        updateBossDistance()
+        if tick() - lastBossTPTime > 2 and bossdistance > 30 then
+            bosstp31()
+            lastBossTPTime = tick()
+        elseif tick() - lastBoss29Time > 0.5 and bossdistance <= 30 then
+            bosstp29()
+            lastBoss29Time = tick()
+        end
+    else
+        if tick() - lastVoidTPTime > 2 then
+            tpbypass()
+            task.wait(0.005)
+            tp(Vector3.new(humanoidRootPart.Position.X, -999, humanoidRootPart.Position.Z))
+            lastVoidTPTime = tick()
+        end
+    end
+end
+
+-- START TASKS
+function startAutofarmLoop()
+    taskHandles.autofarm = task.spawn(function()
+        while autoboss and isBossActive do
+            task.wait(checkspeed)
+            ffhandler()
+        end
+    end)
+end
+
+local function startAutoM1Task()
+    if autoM1Running then return end
+    autoM1Running = true
+
+    local m1args = {
+        [1] = {
+            [1] = { ["Module"] = "M1" },
+            [2] = "\5"
+        }
+    }
+    local remoteEvent = game:GetService("ReplicatedStorage"):WaitForChild("Bridgenet2Main"):WaitForChild("dataRemoteEvent")
+
+    taskHandles.autoM1 = task.spawn(function()
+        while autoM1Running and autoboss and isBossActive do
+            remoteEvent:FireServer(unpack(m1args))
+            task.wait(0.15)
+        end
+    end)
+end
+
+function startAutoKill()
+    taskHandles.autoKill = task.spawn(function()
+        while autoboss and isBossActive do
+            local hum = getBossHumanoid()
+            if hum and hum.Health < 2000 and hum.Health > 0 then
+                hum.Health = -1
+            end
+            task.wait(0.1)
+        end
+    end)
+end
+
+function startWeaponAutoEquip()
+    taskHandles.weapon = task.spawn(function()
+        while autoboss and isBossActive do
+            local boss = getBossHRP()
+            if boss then
+                local entity = entities:FindFirstChild(player.Name)
+                local toggle = entity and entity:FindFirstChild("Toggle")
+                local race = entity and entity:FindFirstChild("Race")
+                if toggle and not toggle.Value and race and race.Value then
+                    local holding = (race.Value == "Ghoul")
+                    local equipargs = {
+                        [1] = {
+                            [1] = {
+                                ["Module"] = "Toggle",
+                                ["IsHolding"] = holding
+                            },
+                            [2] = "\5"
+                        }
+                    }
+                    game.ReplicatedStorage.Bridgenet2Main.dataRemoteEvent:FireServer(unpack(equipargs))
                 end
             end
-            task.wait(0.5)
+            task.wait(1)
         end
     end)
 end
 
--- Helper scripts executor
-local function waitForBossAndRunHelpers()
-    task.spawn(function()
-        print("Waiting for boss...")
-        local entitiesFolder = workspace:FindFirstChild("Entities")
-        if not entitiesFolder then
-            warn("Entities folder not found")
-            return
-        end
-        while #entitiesFolder:GetChildren() < 2 do
-            task.wait(0.1)
-        end
-        print("boss spawned!")
+function startFacer()
+    taskHandles.facer = task.spawn(function()
+        print("Facer module initialized")
+        local cam = workspace.CurrentCamera
+        local hrp = humanoidRootPart
 
-        coroutine.wrap(function()
-            loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/weapon"))()
-        end)()
-        coroutine.wrap(function()
-            loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/m1"))()
-        end)()
-        coroutine.wrap(function()
-            loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/facer"))()
-        end)()
-        coroutine.wrap(function()
-            loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/roller"))()
-        end)()
-    end)
-end
+        game:GetService("RunService").RenderStepped:Connect(function()
+            if not autoboss or not isBossActive then return end
+            local boss = getBossHRP()
+            if boss and cam and hrp then
+                local camPos = cam.CFrame.Position
+                cam.CFrame = CFrame.lookAt(camPos, Vector3.new(boss.Position.X, camPos.Y, boss.Position.Z))
 
--- Per-respawn autofarm logic
-local function handleRespawn(character)
-    print("respawn detected")
-    tryStartInstakill()
-
-    local startTime = os.clock()
-    local duration = 55 - retreatTime
-
-    task.spawn(function()
-        while bossAutoFarm and player.Character == character do
-            local elapsed = os.clock() - startTime
-            if elapsed < duration then
-                moveToBoss()
-            else
-                retreatDown()
+                local playerPos = hrp.Position
+                hrp.CFrame = CFrame.lookAt(playerPos, Vector3.new(boss.Position.X, playerPos.Y, boss.Position.Z))
             end
-            task.wait(0.1)
-        end
+        end)
     end)
 end
 
--- AutoFarm toggle logic
-local respawnConnection
-local function BOSSAUTOFARM(toggleState)
-    bossAutoFarm = toggleState
-
-    if not bossAutoFarm then
-        print("[DEBUG] Boss Auto-Farm DISABLED")
-        if respawnConnection then
-            respawnConnection:Disconnect()
-            respawnConnection = nil
-        end
-        return
+-- STOP TASKS
+local function stopAllTasks()
+    for name, thread in pairs(taskHandles) do
+        if thread then task.cancel(thread) end
+        taskHandles[name] = nil
     end
+end
 
-    print("[DEBUG] Boss Auto-Farm ENABLED")
+-- Baseplate setup (one-time)
+local function setupBaseplate()
+    local pos = humanoidRootPart.Position
+    local baseplate = Instance.new("Part")
+    baseplate.Size = Vector3.new(2000, 5, 2000)
+    baseplate.Position = Vector3.new(pos.X, pos.Y - 5, pos.Z)
+    baseplate.Anchored = true
+    baseplate.Material = Enum.Material.SmoothPlastic
+    baseplate.BrickColor = BrickColor.new("Institutional white")
+    baseplate.Name = "Baseplate"
+    baseplate.Parent = workspace.Map.BossRoom
+    task.delay(3, function()
+        local roomModel = workspace.Map.BossRoom:FindFirstChild("RoomModel")
+        if roomModel then roomModel:Destroy() end
+    end)
+end
 
-    waitForBossAndRunHelpers()
+-- Set Autoboss
+function setAutoboss(state)
+    if autoboss == state then return end
+    autoboss = state
+    print("Autoboss toggled:", autoboss)
 
-    -- Connect to respawn detection immediately
-    respawnConnection = player.CharacterAdded:Connect(handleRespawn)
-
-    -- Also trigger for current character
-    if player.Character then
-        handleRespawn(player.Character)
+    if autoboss then
+        if bossWaitTask then task.cancel(bossWaitTask) end
+        bossWaitTask = task.spawn(function()
+            while autoboss do
+                local boss = getBossHRP()
+                if boss then
+                    print("Boss found. Starting all tasks.")
+                    isBossActive = true
+                    setupBaseplate()
+                    startAutofarmLoop()
+                    startAutoKill()
+                    startAutoM1Task()
+                    startWeaponAutoEquip()
+                    startFacer()
+                    break
+                end
+                task.wait(0.1)
+            end
+        end)
+    else
+        isBossActive = false
+        stopAllTasks()
+        if bossWaitTask then bossWaitTask = nil end
     end
+end
+
+-- Respawn Handler
+player.CharacterAdded:Connect(function(character)
+    task.wait(0.2)
+    forceFieldPath = getForceFieldPath()
+    humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+    cachedBossHRP = nil
+    lastBossTPTime = 0
+    lastBoss29Time = 0
+    lastVoidTPTime = 0
+    bossdistance = 0
+    print("[Respawn] Paths and state reset.")
+end)
+
+-- Init
+if player.Character then
+    humanoidRootPart = player.Character:WaitForChild("HumanoidRootPart")
+    forceFieldPath = getForceFieldPath()
 end
 
 -- GUI Setup
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 local Window = Rayfield:CreateWindow({
-   Name = "Fatman fanclub",
-   LoadingTitle = "Exps for a shitty ass game",
-   LoadingSubtitle = "by wad",
-   Theme = "Amethyst",
-   ConfigurationSaving = {
-      Enabled = true,
-      FolderName = "waadghoulre",
-      FileName = "wadadadad"
-   }
+    Name = "Fatman fanclub",
+    LoadingTitle = "Exps for a shitty ass game",
+    LoadingSubtitle = "by wad",
+    Theme = "Amethyst",
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = "waadghoulre",
+        FileName = "wadadadad"
+    }
 })
 
 local BossTab = Window:CreateTab("Boss Autofarm", nil)
 BossTab:CreateSection("Boss Toggle")
 
 BossTab:CreateToggle({
-   Name = "Boss Autofarm",
-   CurrentValue = false,
-   Flag = "Toggle1",
-   Callback = function(Value)
-       BOSSAUTOFARM(Value)
-   end,
+    Name = "Boss Autofarm",
+    CurrentValue = false,
+    Flag = "Toggle1",
+    Callback = function(val)
+        setAutoboss(val)
+    end
 })
-
-BossTab:CreateToggle({
-   Name = "Boss Instakill",
-   CurrentValue = false,
-   Flag = "Toggle2",
-   Callback = function(Value)
-       bossInstakill = Value
-       if bossAutoFarm and bossInstakill then
-           tryStartInstakill()
-       end
-   end,
-})
-
--- Sliders
-BossTab:CreateDivider()
-BossTab:CreateSection("Distance settings")
 
 BossTab:CreateSlider({
-   Name = "Boss Distance",
-   Range = {0, 30},
-   Increment = 1,
-   Suffix = "Studs",
-   CurrentValue = frontDistance,
+   Name = "Forcefield check speed",
+   Range = {0.05, 0.3},
+   Increment = 0.01,
+   Suffix = "seconds",
+   CurrentValue = checkspeed,
    Flag = "Slider1",
    Callback = function(Value)
-       frontDistance = Value
+       checkspeed = Value
    end,
 })
-
-BossTab:CreateSlider({
-   Name = "Down Distance",
-   Range = {0, 200},
-   Increment = 5,
-   Suffix = "Studs",
-   CurrentValue = downwardDistance,
-   Flag = "Slider2",
-   Callback = function(Value)
-       downwardDistance = Value
-   end,
-})
-
-BossTab:CreateDivider()
-BossTab:CreateSection("Speed settings")
-
-BossTab:CreateSlider({
-   Name = "Boss TP Speed",
-   Range = {0, 2},
-   Increment = 0.1,
-   Suffix = "Seconds",
-   CurrentValue = bossTweenSpeed,
-   Flag = "Slider3",
-   Callback = function(Value)
-       bossTweenSpeed = Value
-   end,
-})
-
-BossTab:CreateSlider({
-   Name = "Down TP Speed",
-   Range = {0, 2},
-   Increment = 0.1,
-   Suffix = "Seconds",
-   CurrentValue = downTweenSpeed,
-   Flag = "Slider4",
-   Callback = function(Value)
-       downTweenSpeed = Value
-   end,
-})
-
-BossTab:CreateSlider({
-   Name = "Retreat Time",
-   Range = {0, 55},
-   Increment = 1,
-   Suffix = "Seconds",
-   CurrentValue = retreatTime,
-   Flag = "Slider5",
-   Callback = function(Value)
-       retreatTime = Value
-   end,
-})
-
-BossTab:CreateDivider()
