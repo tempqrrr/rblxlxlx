@@ -1,20 +1,31 @@
 local autoboss = false
-local bossVerticalOffset = 5  -- Vertical offset from the boss's position (change this value)
-local bossHorizontalOffset = 3  -- Horizontal offset from the boss's position (change this value)
-local checkspeed = 0.08
+local bossVerticalOffset = 5
+local bossHorizontalOffset = 3
+local checkspeed = 0.08 -- Controls loop speed
 
+-- Task Variables
 local autofarmTask
 local autofarmRunning = false
+local automaticKillTask
+local automaticKillRunning = false
+local autoM1Task = nil
+local autoM1Running = false
+local facerTaskRunning = false
+local facerConnections = {}
+local weaponTaskRunning = false
 local bossWaitTask = nil
 
 local player = game.Players.LocalPlayer
 local entities = workspace.Entities
 local forceFieldPath
-local humanoidRootPart  -- Store humanoidRootPart for easy access
+local humanoidRootPart
 local lastBossTPTime = 0
 local lastVoidTPTime = 0
 local lastBoss29Time = 0  -- Cooldown for bosstp29
-local bossdistance = 0  -- Variable to store the distance between the boss and the player
+local bossdistance = 0  -- Distance to boss
+
+-- Boss Active Flag
+local isBossActive = true
 
 -- Function to get the ForceField path for the player
 local function getForceFieldPath()
@@ -22,12 +33,21 @@ local function getForceFieldPath()
     return entities:FindFirstChild(playerName) and entities[playerName]:FindFirstChild("ForceField")
 end
 
--- Function to get the boss's humanoid root part
+-- Function to get the boss's humanoid root part (cached)
+local cachedBossHRP = nil
 local function getBoss()
+    if cachedBossHRP then
+        return cachedBossHRP
+    end
+
     for _, entity in pairs(entities:GetChildren()) do
         if not game.Players:FindFirstChild(entity.Name) then
             -- This is the boss since it's not a player
-            return entity:FindFirstChild("HumanoidRootPart")
+            local hrp = entity:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                cachedBossHRP = hrp -- Cache it for future use
+                return hrp
+            end
         end
     end
     return nil
@@ -43,51 +63,39 @@ local function tpbypass()
             [2] = "\5"
         }
     }
-
     -- Fire the dash command to bypass the anti-TP
     game:GetService("ReplicatedStorage"):WaitForChild("Bridgenet2Main"):WaitForChild("dataRemoteEvent"):FireServer(unpack(args))
 end
 
 -- Function to teleport the player to a target position with vertical and horizontal offsets
 local function tp(targetPosition)
-    -- Apply the vertical and horizontal offsets to the target position
     if humanoidRootPart then
-        local offsetPosition = targetPosition + Vector3.new(bossHorizontalOffset, bossVerticalOffset, 0)
+        local currentY = humanoidRootPart.Position.Y
+        local offsetPosition = Vector3.new(targetPosition.X + bossHorizontalOffset, currentY + bossVerticalOffset, targetPosition.Z)
         humanoidRootPart.CFrame = CFrame.new(offsetPosition)
     else
         print("HumanoidRootPart is not available!")
     end
 end
 
--- Function to update the paths after respawn
+-- Function to update paths after respawn (cache reset)
 local function updatePathsAfterRespawn(character)
     wait(0.2)
     forceFieldPath = getForceFieldPath()
     humanoidRootPart = player.Character:WaitForChild("HumanoidRootPart")
+    cachedBossHRP = nil -- Clear cached boss HRP
 
-    -- 🆕 Reset cooldown timers & distance
+    -- Reset cooldown timers & distance
     lastBossTPTime = 0
     lastBoss29Time = 0
     lastVoidTPTime = 0
     bossdistance = 0
 end
 
--- Listen for the player's respawn and update the paths after the delay
+-- Listen for the player's respawn and update paths after the delay
 player.CharacterAdded:Connect(function(character)
     updatePathsAfterRespawn(character)
 end)
-
--- Function to ensure humanoidRootPart is properly initialized before we start the main loop
-local function initializeHumanoidRootPart()
-    -- Wait until HumanoidRootPart is available (before the main logic starts)
-    humanoidRootPart = player.Character:WaitForChild("HumanoidRootPart")
-    forceFieldPath = getForceFieldPath()  -- Initialize the ForceField path too
-end
-
--- Initial setup when the script is first loaded (before respawn)
-if player.Character then
-    initializeHumanoidRootPart()
-end
 
 -- Function to calculate the distance between the player and the boss
 local function bossget()
@@ -99,136 +107,214 @@ end
 
 -- bosstp31: Used when the boss is more than 30 studs away
 local function bosstp31()
-    -- Bypass and teleport to boss if distance > 30, with vertical and horizontal offset
+    local bossPart = getBoss()
+    if not bossPart then return end
     tpbypass()
     wait(0.005)
-    tp(getBoss().Position)  -- Teleport to the boss's position with offsets
+    tp(bossPart.Position)
 end
 
 -- bosstp29: Used when the boss is less than 30 studs away
 local function bosstp29()
-    -- Teleport to boss directly if distance <= 30, with vertical and horizontal offset
-    tp(getBoss().Position)  -- Teleport to the boss's position with offsets
-end
+    local bossPart = getBoss()
+    if not bossPart then return end
 
--- Function to toggle the autoboss feature on and off
-local function toggleAutoboss()
-    autoboss = not autoboss
-    print("Autoboss is now: " .. tostring(autoboss))  -- Print the status to the console
-end
+    local myY = humanoidRootPart.Position.Y
+    local bossY = bossPart.Position.Y
+    local yDiff = math.abs(myY - bossY)
 
-local function ffhandler()
-    -- ForceField path check
-    forceFieldPath = getForceFieldPath()
-
-    if forceFieldPath then
-        -- Get boss distance to decide which tp function to use
-        bossget()
-
-        -- If the boss distance > 30, we will use bosstp31
-        if tick() - lastBossTPTime > 2 then  -- 2-second cooldown for bosstp31
-            if bossdistance > 30 then
-                bosstp31()  -- Call bosstp31
-                lastBossTPTime = tick()  -- Set cooldown for bosstp31
-            end
-        -- If the boss distance <= 30, we will use bosstp29
-        elseif tick() - lastBoss29Time > 0.5 then  -- 0.5-second cooldown for bosstp29
-            if bossdistance <= 30 then
-                bosstp29()  -- Call bosstp29
-                lastBoss29Time = tick()  -- Set cooldown for bosstp29
-            end
-        end
+    local finalY
+    if yDiff <= 4 then
+        finalY = myY + bossVerticalOffset
     else
-        -- Forcefield doesn't exist, use voidtp logic
-        if tick() - lastVoidTPTime > 2 then
-            -- No forcefield, use voidtp
-            tpbypass()
-            wait(0.005)
-            tp(Vector3.new(humanoidRootPart.Position.X, -999, humanoidRootPart.Position.Z))
-            lastVoidTPTime = tick()  -- Set cooldown for voidtp
+        finalY = bossY + bossVerticalOffset
+    end
+
+    tp(Vector3.new(bossPart.Position.X + bossHorizontalOffset, finalY, bossPart.Position.Z))
+end
+
+-- Refactored: Centralized task manager for controlling task spawning
+local taskManager = {
+    tasks = {},
+    startTask = function(self, taskName, taskFunc)
+        if self.tasks[taskName] then
+            return -- Task already running
+        end
+        self.tasks[taskName] = task.spawn(taskFunc)
+    end,
+    stopTask = function(self, taskName)
+        if self.tasks[taskName] then
+            self.tasks[taskName] = nil -- Stop the task
         end
     end
-end
+}
 
-
--- Function to start the autofarm loop
+-- Simplified task starting functions
 local function startAutofarmLoop()
-    if autofarmRunning then return end
-    autofarmRunning = true
-
-    autofarmTask = task.spawn(function()
+    taskManager:startTask("autofarmLoop", function()
         while autofarmRunning do
-            task.wait(checkspeed) -- 🆕 uses the dynamic variable
+            task.wait(checkspeed)
             ffhandler()
         end
     end)
 end
 
--- Function to stop the autofarm loop
 local function stopAutofarmLoop()
-    autofarmRunning = false
-    autofarmTask = nil
+    taskManager:stopTask("autofarmLoop")
 end
 
+local function startAutomaticKiller()
+    taskManager:startTask("automaticKiller", function()
+        while automaticKillRunning do
+            local bossHumanoid = getBossHumanoid()
+            if bossHumanoid then
+                if bossHumanoid.Health < 2000 and bossHumanoid.Health > 0 then
+                    bossHumanoid.Health = -1
+                end
+            else
+                automaticKillRunning = false
+                break
+            end
+            task.wait(0.1)
+        end
+    end)
+end
+
+local function stopAutomaticKiller()
+    taskManager:stopTask("automaticKiller")
+end
+
+local function startAutoM1Task()
+    taskManager:startTask("autoM1", function()
+        local remoteEvent = game.ReplicatedStorage:WaitForChild("Bridgenet2Main"):WaitForChild("dataRemoteEvent")
+        local M1args = {
+            [1] = {
+                [1] = {
+                    ["Module"] = "M1"
+                },
+                [2] = "\5"
+            }
+        }
+
+        while autoM1Running do
+            local bossHRP = getBoss()
+            if bossHRP then
+                remoteEvent:FireServer(unpack(M1args))
+            end
+            task.wait(0.2)
+        end
+    end)
+end
+
+local function stopAutoM1Task()
+    taskManager:stopTask("autoM1")
+end
+
+local function startFacerTask()
+    taskManager:startTask("facer", function()
+        print("Facer module initialized")
+        -- Camera Lock
+        local camLockConnection = game:GetService("RunService").RenderStepped:Connect(function()
+            if not isBossActive then return end
+            local bossHRP = getBoss()
+            if bossHRP and workspace.CurrentCamera then
+                local camPos = workspace.CurrentCamera.CFrame.Position
+                local bossPos = bossHRP.Position
+                local targetPos = Vector3.new(bossPos.X, camPos.Y, bossPos.Z)
+                workspace.CurrentCamera.CFrame = CFrame.lookAt(camPos, targetPos)
+            end
+        end)
+
+        -- Character Face Boss
+        local character = player.Character or player.CharacterAdded:Wait()
+        local hrp = character:WaitForChild("HumanoidRootPart")
+
+        local faceConnection = game:GetService("RunService").RenderStepped:Connect(function()
+            if not isBossActive then return end
+            local bossHRP = getBoss()
+            if bossHRP and hrp then
+                local playerPos = hrp.Position
+                local bossPos = bossHRP.Position
+                local targetPos = Vector3.new(bossPos.X, playerPos.Y, bossPos.Z)
+                hrp.CFrame = CFrame.lookAt(playerPos, targetPos)
+            end
+        end)
+
+        -- Save connections to disconnect later
+        facerConnections = { camLockConnection, faceConnection }
+    end)
+end
+
+local function stopFacerTask()
+    taskManager:stopTask("facer")
+    for _, conn in ipairs(facerConnections) do
+        if conn and conn.Disconnect then
+            conn:Disconnect()
+        end
+    end
+    facerConnections = {}
+end
+
+-- Setting up custom baseplate
+local function setupCustomBaseplate()
+    -- Setup code for baseplate...
+end
+
+-- Manage Autoboss state
 local function setAutoboss(state)
     if autoboss ~= state then
         autoboss = state
         print("Autoboss changed to:", autoboss)
 
         if autoboss then
-            -- Stop any previous wait task
-            if bossWaitTask then
-                bossWaitTask:Disconnect()
-                bossWaitTask = nil
-            end
-
-            -- Start task that waits for boss to spawn
-            bossWaitTask = task.spawn(function()
+            -- Start all tasks if autoboss is true
+            taskManager:startTask("bossWait", function()
                 while autoboss do
                     local bossPart = getBoss()
                     if bossPart then
-                        print("Boss found. Starting autofarm.")
+                        print("Boss found. Starting autofarm + autokill.")
                         startAutofarmLoop()
-                        bossWaitTask = nil
+                        startAutomaticKiller()
+                        startAutoM1Task()
+                        startFacerTask()
+                        setupCustomBaseplate()
                         break
                     end
                     task.wait(0.5)
                 end
             end)
         else
+            -- Stop all tasks if autoboss is false
             stopAutofarmLoop()
-
-            -- Cancel boss wait task if active
-            if bossWaitTask then
-                bossWaitTask = nil
-            end
+            stopAutomaticKiller()
+            stopAutoM1Task()
+            stopFacerTask()
         end
     end
 end
 
-
--- GUI SETUP (now it's safe to use setAutoboss)
+-- GUI SETUP
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 local Window = Rayfield:CreateWindow({
-   Name = "Fatman fanclub",
-   LoadingTitle = "Exps for a shitty ass game",
-   LoadingSubtitle = "by wad",
-   Theme = "Amethyst",
-   ConfigurationSaving = {
-      Enabled = true,
-      FolderName = "waadghoulre",
-      FileName = "wadadadad"
-   }
+    Name = "Fatman fanclub",
+    LoadingTitle = "Exps for a shitty ass game",
+    LoadingSubtitle = "by wad",
+    Theme = "Amethyst",
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = "waadghoulre",
+        FileName = "wadadadad"
+    }
 })
 
 local BossTab = Window:CreateTab("Boss Autofarm", nil)
 BossTab:CreateSection("Boss Toggle")
 
 BossTab:CreateToggle({
-   Name = "Boss Autofarm",
-   CurrentValue = false,
-   Flag = "Toggle1",
-   Callback = function(Value)
-       setAutoboss(Value) -- NOW this works
-   end,
+    Name = "Boss Autofarm",
+    CurrentValue = false,
+    Flag = "Toggle1",
+    Callback = function(Value)
+        setAutoboss(Value)
+    end,
 })
