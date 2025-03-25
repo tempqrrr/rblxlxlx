@@ -54,7 +54,7 @@ end
 local player = game.Players.LocalPlayer
 local myUserId = player.UserId
 
-if myUserId == 4381864804 then
+if myUserId == 1 then
     game.StarterGui:SetCore("SendNotification", {
         Title = "Script Notification";
         Text = "Tester Build";
