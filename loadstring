@@ -1,73 +1,48 @@
--- Function containing your main whitelist + script logic
-local function client()
-    local players = game:GetService("Players")
-    local player = players.LocalPlayer
-    local HttpService = game:GetService("HttpService")
-    local RbxAnalyticsService = game:GetService("RbxAnalyticsService")
+local players = game:GetService("Players")
+local player = players.LocalPlayer
+local HttpService = game:GetService("HttpService")
+local RbxAnalyticsService = game:GetService("RbxAnalyticsService")
 
-    local allowedPlaceId = 89413197677760
-    local whitelistUrl = "https://github.com/tempqrrr/rblxlxlx/raw/refs/heads/main/whitelisted"
+local allowedPlaceId = 89413197677760
+local whitelistUrl = "https://github.com/tempqrrr/rblxlxlx/raw/refs/heads/main/whitelisted"
 
-    local function notify(message)
-        game.StarterGui:SetCore("SendNotification", {
-            Title = "Script Notification";
-            Text = message;
-            Duration = 2;
-        })
-    end
-
-    local function fetchWhitelistedClientIds()
-        local success, response = pcall(function()
-            return loadstring(game:HttpGet(whitelistUrl))()
-        end)
-        return success and type(response) == "table" and response or {}
-    end
-
-    if game.PlaceId ~= allowedPlaceId then
-        notify("Only works in boss raids as of now.")
-        return
-    end
-
-    print("Place ID is correct. Checking whitelist...")
-
-    local clientId = RbxAnalyticsService:GetClientId()
-    local whitelistedClientIds = fetchWhitelistedClientIds()
-
-    local isWhitelisted = false
-    for _, id in pairs(whitelistedClientIds) do
-        if clientId == id then
-            isWhitelisted = true
-            break
-        end
-    end
-
-    if not isWhitelisted then
-        players.LocalPlayer:Kick("Not whitelisted. Contact wadadaddddadad on Discord.")
-        return
-    end
-
-    print("Whitelisted. Executing script...")
-    loadstring(game:HttpGet('https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/gui'))()
-end
-
--- Check user ID and run appropriate build
-local player = game.Players.LocalPlayer
-local myUserId = player.UserId
-
-if myUserId == 1 then
+local function notify(message)
     game.StarterGui:SetCore("SendNotification", {
         Title = "Script Notification";
-        Text = "Tester Build";
+        Text = message;
         Duration = 2;
     })
-
-    loadstring(game:HttpGet('https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/tester'))()
-else
-    game.StarterGui:SetCore("SendNotification", {
-        Title = "Script Notification";
-        Text = "Moving onto main whitelist system...";
-        Duration = 2;
-    })
-
-    client()
 end
+
+local function fetchWhitelistedClientIds()
+    local success, response = pcall(function()
+        return loadstring(game:HttpGet(whitelistUrl))()
+    end)
+    return success and type(response) == "table" and response or {}
+end
+
+if game.PlaceId ~= allowedPlaceId then
+    notify("Only works in boss raids as of now.")
+    return
+end
+
+print("Place ID is correct. Checking whitelist...")
+
+local clientId = RbxAnalyticsService:GetClientId()
+local whitelistedClientIds = fetchWhitelistedClientIds()
+
+local isWhitelisted = false
+for _, id in pairs(whitelistedClientIds) do
+    if clientId == id then
+        isWhitelisted = true
+        break
+    end
+end
+
+if not isWhitelisted then
+    player:Kick("Not whitelisted. Contact wadadaddddadad on Discord.")
+    return
+end
+
+print("Whitelisted. Executing script...")
+loadstring(game:HttpGet('https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/gui'))()
