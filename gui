@@ -303,8 +303,8 @@ local Window = Rayfield:CreateWindow({
     Theme = "Amethyst",
     ConfigurationSaving = {
         Enabled = true,
-        FolderName = "fatmanfanclub",
-        FileName = "waaaaaaad"
+        FolderName = "ghoulreautotototo",
+        FileName = "monkey"
     }
 })
 
