@@ -7,12 +7,6 @@
     - Auto Equip Weapon
     - Respawn-safe & performance optimized
 --]]
-
-local autoboss = false
-local bossVerticalOffset = 0
-local bossHorizontalOffset = 2
-local checkspeed = 0.08
-
 local autofarmTask, bossWaitTask = nil, nil
 local taskHandles = {}
 local isBossActive = false
