@@ -6,7 +6,9 @@ local SPIN_POWER = 100
 local FLOAT_HEIGHT = 9
 
 local master = game.Players.OvercomeHatred
-local bot = game.Workspace.Players.LocalPlayer
+local playerName = game.Players.LocalPlayer.Name  -- Get the name of the local player
+local bot = workspace.Players:FindFirstChild(playerName)  -- Dynamically reference the local player in workspace.Players
+
 
 for i, plr in pairs(game.Players:GetPlayers()) do
 	for i, obj in pairs(plr:GetChildren()) do
