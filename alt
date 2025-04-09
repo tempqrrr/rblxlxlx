@@ -6,8 +6,7 @@ local SPIN_POWER = 100
 local FLOAT_HEIGHT = 9
 
 local master = game.Players.OvercomeHatred
-local bot = game.Players.LocalPlayer
-local HH = bot.Character.Humanoid.HipHeight
+local bot = game.Workspace.Players.LocalPlayer
 
 for i, plr in pairs(game.Players:GetPlayers()) do
 	for i, obj in pairs(plr:GetChildren()) do
