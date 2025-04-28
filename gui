@@ -20,6 +20,7 @@ local lastBossTPTime = 0
 local lastVoidTPTime = 0
 local lastBoss29Time = 0
 local bossdistance = 0
+local checkspeed = 0.01
 
 -- Utility: Get ForceField path
 local function getForceFieldPath()
