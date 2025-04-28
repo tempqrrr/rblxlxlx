@@ -81,7 +81,7 @@ local function bosstp31()
     local boss = getBossHRP()
     if not boss then return end
     tpbypass()
-    task.wait(0.005)
+    task.wait(0.01)
     tp(boss.Position)
 end
 
@@ -117,7 +117,7 @@ local function ffhandler()
     else
         if tick() - lastVoidTPTime > 2 then
             tpbypass()
-            task.wait(0.005)
+            task.wait(0.01)
             tp(Vector3.new(humanoidRootPart.Position.X, -999, humanoidRootPart.Position.Z))
             lastVoidTPTime = tick()
         end
