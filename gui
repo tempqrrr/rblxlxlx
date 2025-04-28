@@ -317,7 +317,7 @@ BossTab:CreateToggle({
 
 BossTab:CreateSlider({
    Name = "Forcefield check speed",
-   Range = {0.05, 0.3},
+   Range = {0, 0.3},
    Increment = 0.01,
    Suffix = "seconds",
    CurrentValue = checkspeed,
