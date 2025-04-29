@@ -203,7 +203,7 @@ function status()
         handlerConnection = RunService.Heartbeat:Connect(function()
             if forcefield == false then
                 void()
-            else
+            elseif forcefield == true then
                 updatedistance()
         
                 if bossdistance <= 30 then
