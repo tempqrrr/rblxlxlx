@@ -1,5 +1,5 @@
 local xoffset = 3
-local yoffset = 5
+local yoffset = 0
 local zoffset = -2
 local bosshrp = nil
 local forcefield = false
