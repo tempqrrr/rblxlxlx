@@ -201,7 +201,7 @@ function status()
 
         -- Hook Heartbeat updates to handler
         handlerConnection = RunService.Heartbeat:Connect(function()
-            if not forcefield then
+            if forcefield == false then
                 void()
             else
                 updatedistance()
