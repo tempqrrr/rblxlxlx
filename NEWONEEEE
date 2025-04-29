@@ -1,0 +1,254 @@
+local xoffset = 3
+local yoffset = 5
+local zoffset = -2
+local bosshrp = 
+local forcefield = false
+local autoboss = true
+local speed = 0.1
+local autom1 = true
+local RunService = game:GetService("RunService") -- Make sure it's at the top!
+local handlerConnection -- for Heartbeat
+local runningTask -- for spawned autoboss task
+local bossdistance = 0
+local bossalive = false
+
+-- Get necessary services
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+
+-- Function to check for ForceField on the player and update 'forcefield' variable
+
+local function updatedistance()
+    local character = game.Players.LocalPlayer.Character
+    if character and bosshrp then
+        local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+        if humanoidRootPart then
+            bossdistance = math.round((humanoidRootPart.Position - bosshrp.Position).Magnitude * 100) / 100
+        end
+    end
+end
+
+local function ffhandler()
+    -- Get the player's name
+    local playerName = game.Players.LocalPlayer.Name
+
+    -- Build the path to workspace.Entities.<YourName>
+    local entity = workspace:FindFirstChild("Entities")
+    if not entity then
+        warn("Entities folder not found!")
+        return
+    end
+
+    -- Find your character inside Entities
+    local playerEntity = entity:FindFirstChild(playerName)
+    if not playerEntity then
+        warn("Player entity not found inside Entities!")
+        return
+    end
+
+    -- Check if the ForceField exists
+    if playerEntity:FindFirstChild("ForceField") then
+        forcefield = true
+    else
+        forcefield = false
+    end
+end
+
+--roller
+local function roll()
+    -- Define the args
+    local rollargs = {
+        [1] = {
+            [1] = {
+                ["Module"] = "Dash"
+            },
+            [2] = "\5"
+        }
+    }
+
+    -- Fire the event with the provided args
+    game:GetService("ReplicatedStorage"):WaitForChild("Bridgenet2Main"):WaitForChild("dataRemoteEvent"):FireServer(unpack(rollargs))
+end
+
+-- Function to teleport the player to the boss's HumanoidRootPart with offsets
+local function bosstp()
+    -- Ensure bosshrp is valid (it should be set later)
+    if not bosshrp or not bosshrp:IsA("BasePart") then
+        warn("Invalid bosshrp")
+        return
+    end
+
+    -- Get the player's character and humanoid root part
+    local character = game.Players.LocalPlayer.Character
+    if not character then return end
+    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+    
+    -- Teleport the player to the bosshrp with offsets
+    local targetPosition = bosshrp.Position + Vector3.new(xoffset, yoffset, zoffset)
+    
+    -- Set the player's humanoid root part to the new position
+    humanoidRootPart.CFrame = CFrame.new(targetPosition)
+end
+
+-- Function to anchor the player to the boss's HumanoidRootPart with offsets and facing the boss
+local function bossanchor()
+    -- Ensure the boss's HumanoidRootPart (bosshrp) is available
+    if not bosshrp or not bosshrp:IsA("BasePart") then
+        warn("Invalid bosshrp")
+        return
+    end
+
+    -- Get the local player's character and humanoid root part
+    local localPlayer = game.Players.LocalPlayer
+    local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
+    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+
+    -- Get the boss's position and rotation (direction he's facing)
+    local targetPosition = bosshrp.Position
+    local targetRotation = bosshrp.CFrame.LookVector  -- Direction the boss is facing
+
+    -- Apply the offsets to the target position
+    local desiredPosition = Vector3.new(
+        targetPosition.X + xoffset,  -- Apply xoffset
+        targetPosition.Y + yoffset,  -- Apply yoffset
+        targetPosition.Z + zoffset   -- Apply zoffset
+    )
+
+    -- Set the position of the player's HumanoidRootPart
+    humanoidRootPart.CFrame = CFrame.new(desiredPosition.X, humanoidRootPart.Position.Y, desiredPosition.Z)
+
+    -- Make the player face the boss (aligning orientation with the boss)
+    humanoidRootPart.CFrame = CFrame.new(humanoidRootPart.Position, targetPosition)
+end
+
+-- Function to dynamically get the boss's HumanoidRootPart
+local function bossget()
+    -- Get all the entities in the workspace
+    local entities = workspace:WaitForChild("Entities")
+    
+    -- Loop through each child of "Entities"
+    for _, entity in pairs(entities:GetChildren()) do
+        -- Check if the entity is not a player (filter out players)
+        if not game.Players:GetPlayerFromCharacter(entity) then
+            -- If it's not a player, then this is the boss
+            if entity:FindFirstChild("HumanoidRootPart") then
+                -- Set the global variable bosshrp to the found boss's HumanoidRootPart
+                bosshrp = entity.HumanoidRootPart
+                print("Boss found: " .. entity.Name)
+                bossalive = true
+                return
+            end
+        end
+    end
+
+    -- If no boss was found, print a warning
+    bossalive = false
+end
+
+
+local function void()
+    roll()
+    wait(0.05)
+    -- Get the player's character and HumanoidRootPart
+    local character = game.Players.LocalPlayer.Character
+    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+
+    -- Get the current X and Z positions
+    local currentPosition = humanoidRootPart.Position
+    local newPosition = Vector3.new(currentPosition.X, -999, currentPosition.Z)
+
+    -- Teleport the player to the new position with Y = -999
+    humanoidRootPart.CFrame = CFrame.new(newPosition)
+end
+
+function status()
+    bossget()
+    print("Autoboss status: " .. tostring(autoboss))
+    if autoboss then
+        -- SAFETY: Disconnect existing handlerConnection if it exists
+        if handlerConnection then
+            handlerConnection:Disconnect()
+            handlerConnection = nil
+        end
+
+        -- Start the autoboss task
+        runningTask = task.spawn(function()
+            while autoboss do
+                if bossalive then
+                    ffhandler()
+                    if forcefield == true then
+                        if autom1 == true then
+                            m1()
+                        end
+        
+                        weaponcheck()
+                        if equip == false then
+                            kagune()
+                        end
+                    end
+                end
+                task.wait(speed)
+            end
+        end)
+
+        -- Start boss refreshing task
+        task.spawn(function()
+            while autoboss do
+                bossget()
+                task.wait(2)
+            end
+        end)
+
+        -- Hook Heartbeat updates to handler
+        handlerConnection = RunService.Heartbeat:Connect(function()
+            if not forcefield then
+                void()
+            else
+                updatedistance()
+        
+                if bossdistance <= 30 then
+                    bossanchor()
+                else
+                    bosstp()
+                end
+            end
+        end)
+
+    else
+        -- Autoboss disabled
+
+        -- Disconnect Heartbeat safely
+        if handlerConnection then
+            handlerConnection:Disconnect()
+            handlerConnection = nil
+        end
+
+        -- runningTask and bossgetTask die naturally because their while-loops check autoboss!
+    end
+end
+
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local Window = Rayfield:CreateWindow({
+    Name = "Fatman fanclub",
+    LoadingTitle = "Exps for a shitty ass game",
+    LoadingSubtitle = "by wad",
+    Theme = "Amethyst",
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = "ghoulreautototo",
+        FileName = "monkey"
+    }
+})
+
+local BossTab = Window:CreateTab("Boss Autofarm", nil)
+BossTab:CreateSection("Boss Toggle")
+
+BossTab:CreateToggle({
+    Name = "Boss Autofarm",
+    CurrentValue = false,
+    Flag = "Toggle1",
+    Callback = function(val)
+        autoboss = val
+        status()
+    end
+})
