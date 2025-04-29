@@ -1,7 +1,7 @@
 local xoffset = 3
 local yoffset = 5
 local zoffset = -2
-local bosshrp
+local bosshrp = nil
 local forcefield = false
 local autoboss = true
 local speed = 0.1
