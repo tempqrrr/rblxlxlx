@@ -11,14 +11,19 @@ local handlerConnection -- for Heartbeat
 local runningTask -- for spawned autoboss task
 local bossdistance = 0
 local bossalive = false
+local onetimebossget = false
+local onetimevoid = false
+local onetimeweapon = false
 
 -- Get necessary services
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
+local VirtualInputManager = game:GetService("VirtualInputManager")
 
 -- Function to check for ForceField on the player and update 'forcefield' variable
 
 local function updatedistance()
+    bossget()
     local character = game.Players.LocalPlayer.Character
     if character and bosshrp then
         local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
@@ -122,7 +127,7 @@ local function bossanchor()
 end
 
 -- Function to dynamically get the boss's HumanoidRootPart
-local function bossget()
+local function bossget() -- Handled by task spawn, if autoboss, run every 0.5
     -- Get all the entities in the workspace
     local entities = workspace:WaitForChild("Entities")
     
@@ -134,8 +139,10 @@ local function bossget()
             if entity:FindFirstChild("HumanoidRootPart") then
                 -- Set the global variable bosshrp to the found boss's HumanoidRootPart
                 bosshrp = entity.HumanoidRootPart
-                print("Boss found: " .. entity.Name)
                 bossalive = true
+                if bossalive == true and onetimebossget == false then
+                    print("Boss Detected")
+                    onetimebossget = true
                 return
             end
         end
@@ -145,20 +152,104 @@ local function bossget()
     bossalive = false
 end
 
+local function bosshandler()
+    updatedistance()
+    wait(0.005)
+    if bossdistance <= 30 then
+        bossanchor()
+    elseif bossdistance => 30 then
+        bosstp()
+    end
+end
+
+local function voidhandler() -- CHECK FOR FORCEFIELD EVERY FRAME, IF NO FORCEFIELD THEN VOID
+    ffhandler()
+    wait(0.001)
+    if forcefield == false then
+        void()
+    end
+end
+
+local function handler() -- RUN EVERY FRAME if autoboss
+    voidhandler()
+    wait(0.001)
+    bosshandler()
+end
+    
 
 local function void()
-    roll()
-    wait(0.05)
-    -- Get the player's character and HumanoidRootPart
-    local character = game.Players.LocalPlayer.Character
-    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+    if forcefield == false then
+        roll()
+        wait(0.05)
+        local character = game.Players.LocalPlayer.Character
+        local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+        local currentPosition = humanoidRootPart.Position
+        local newPosition = Vector3.new(currentPosition.X, -999, currentPosition.Z)
+    end
+    if forcefield == false and onetimevoid == false then
+        print("Invincibility module initialized")
+        onetimevoid = true
+end
 
-    -- Get the current X and Z positions
-    local currentPosition = humanoidRootPart.Position
-    local newPosition = Vector3.new(currentPosition.X, -999, currentPosition.Z)
+local function m1
+    if autoboss == true and forcefield == true and autom1 == true then
+        local m1args = {
+            [1] = {
+                [1] = {
+                    ["Module"] = "M1"
+                },
+                [2] = "\5"
+            }
+        }
 
-    -- Teleport the player to the new position with Y = -999
-    humanoidRootPart.CFrame = CFrame.new(newPosition)
+        game.ReplicatedStorage:WaitForChild("Bridgenet2Main"):WaitForChild("dataRemoteEvent"):FireServer(unpack(m1args))
+    end
+end
+
+local function kagune
+    if autoboss == true and forcefield == true then
+        kagunecheck()
+        wait(0.005)
+        if equipped == false then
+            VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+            wait(0.01)
+            VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+        end
+    end
+end
+
+local function kagunecheck()
+    local playerName = game.Players.LocalPlayer.Name
+
+    -- Build the path to workspace.Entities.<YourName>
+    local entity = workspace:FindFirstChild("Entities")
+    if not entity then
+        warn("Entities folder not found!")
+        return
+    end
+
+    -- Find your character inside Entities
+    local playerEntity = entity:FindFirstChild(playerName)
+    if not playerEntity then
+        warn("Player entity not found inside Entities!")
+        return
+    end
+
+    local toggle = playerEntity:FindFirstChild("Toggle")
+    if not toggle then
+        warn("Toggle not found inside Player!")
+        return
+    end
+
+    if toggle and toggle.Value == false then
+        VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.BackSlash, false, game)
+        wait(0.1)
+        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.BackSlash, false, game)
+    end
+
+    if toggle and onetimeweapon == false then
+        print("Weapon module initiliazed")
+        onetimeweapon = true
 end
 
 function status()
@@ -175,18 +266,8 @@ function status()
         runningTask = task.spawn(function()
             while autoboss do
                 if bossalive then
-                    ffhandler()
-                    if forcefield == true then
-                        if autom1 == true then
-                            m1()
-                        end
-        
-                        weaponcheck()
-                        if equip == false then
-                            kagune()
-                        end
-                    end
-                end
+                    kagune() -- Kagune function runs a weaponcheck, if no weapon equipped then press E (if forcefield true)
+                    m1() -- M1 function checks if forcefield and autom1 = true, then M1s
                 task.wait(speed)
             end
         end)
@@ -195,23 +276,13 @@ function status()
         task.spawn(function()
             while autoboss do
                 bossget()
-                task.wait(2)
+                task.wait(0.5)
             end
         end)
 
         -- Hook Heartbeat updates to handler
         handlerConnection = RunService.Heartbeat:Connect(function()
-            if forcefield == false then
-                void()
-            elseif forcefield == true then
-                updatedistance()
-        
-                if bossdistance <= 30 then
-                    bossanchor()
-                else
-                    bosstp()
-                end
-            end
+            handler()
         end)
 
     else
