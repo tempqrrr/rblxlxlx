@@ -25,6 +25,13 @@ local PromptButtonHoldBeganConnection = nil
 local PromptShownConnection = nil
 local originalDurations = {}
 
+local noJumpCooldownEnabled = false
+local jumpListener = nil
+local stateConn = nil
+local charConn = nil
+local humanoid = nil
+local canJump = false
+
 local itemList = {
 	"Basket",
 	"Bone Chestpiece",
@@ -63,12 +70,89 @@ local hitboxConnection = nil
 local originalSizes = {} -- [playerName] = Vector3
 local active = false
 local hbsize = 15
-local htbtrans = 0.7
+local hbtrans = 0.7
 
-local jp = 10
+local jp = 50
 local toggleActive = false
 
 local danceActive = false
+
+local autoThirstEnabled = false
+local autoThirstConnection
+
+local function bindNoJumpCooldown(char)
+	if stateConn then stateConn:Disconnect() end
+
+	humanoid = char:WaitForChild("Humanoid")
+
+	stateConn = humanoid.StateChanged:Connect(function(_, newState)
+		if newState == Enum.HumanoidStateType.Landed then
+			canJump = true
+		elseif newState == Enum.HumanoidStateType.Freefall then
+			canJump = false
+		end
+	end)
+
+	-- Allow jump if we spawn on the ground
+	canJump = humanoid:GetState() == Enum.HumanoidStateType.Running
+end
+
+local function startNoJumpCooldown()
+	if noJumpCooldownEnabled then return end
+	noJumpCooldownEnabled = true
+
+	local UserInputService = game:GetService("UserInputService")
+
+	if player.Character then
+		bindNoJumpCooldown(player.Character)
+	end
+
+	charConn = player.CharacterAdded:Connect(bindNoJumpCooldown)
+
+	jumpListener = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+		if gameProcessed then return end
+		if input.KeyCode == Enum.KeyCode.Space and canJump and humanoid then
+			humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+			canJump = false
+		end
+	end)
+
+	notify("No Jump Cooldown", "Enabled")
+end
+
+local function stopNoJumpCooldown()
+	noJumpCooldownEnabled = false
+	canJump = false
+
+	if jumpListener then jumpListener:Disconnect() jumpListener = nil end
+	if stateConn then stateConn:Disconnect() stateConn = nil end
+	if charConn then charConn:Disconnect() charConn = nil end
+
+	humanoid = nil
+	notify("No Jump Cooldown", "Disabled")
+end
+
+local function startAutoThirst()
+    if autoThirstEnabled then return end
+    autoThirstEnabled = true
+
+    autoThirstConnection = task.spawn(function()
+        while autoThirstEnabled do
+            local waterSource = game:GetService("ReplicatedStorage"):FindFirstChild("WaterSource")
+            if waterSource then
+                waterSource:FireServer("Drank")
+            end
+            task.wait(5)
+        end
+    end)
+
+    notify("Auto Thirst", "Enabled - Drinking every 5 seconds")
+end
+
+local function stopAutoThirst()
+    autoThirstEnabled = false
+    notify("Auto Thirst", "Disabled")
+end
 
 function forceWalkSpeed()
     print("walkspeed")
@@ -803,6 +887,35 @@ local Toggle = Tab1:CreateToggle({
 	end,
 })
 
+local Divider = Tab1:CreateDivider()
+local Section = Tab1:CreateSection("gay bypasses")
+Tab1:CreateToggle({
+	Name = "No Jump Cooldown",
+	CurrentValue = false,
+	Flag = "NoJumpCooldownReal",
+	Callback = function(Value)
+		if Value then
+			startNoJumpCooldown()
+		else
+			stopNoJumpCooldown()
+		end
+	end,
+})
+
+local Divider = Tab1:CreateDivider()
+local Section = Tab1:CreateSection("Auto thirst")
+Tab1:CreateToggle({
+    Name = "Auto Thirst",
+    CurrentValue = false,
+    Flag = "AutoThirst",
+    Callback = function(Value)
+        if Value then
+            startAutoThirst()
+        else
+            stopAutoThirst()
+        end
+    end,
+})
 
 local Divider = Tab1:CreateDivider()
 local Section = Tab1:CreateSection("Dumb stuff")
@@ -1005,7 +1118,7 @@ local Toggle = Tab5:CreateToggle({
    end,
 })
 
-local Divider = Tab1:CreateDivider()
+local Divider = Tab5:CreateDivider()
 local Paragraph = Tab5:CreateParagraph({Title = "W.I.P", Content = "CowKing is buggy, but really fun to use. Current keybinds are H to jump, Q to stop/unstop cows (must be in walkspeed editor mode), R to switch between walkspeed editor and jumppower editor, + and - to increase/decrease walkspeed/jumppower, M to switch between 24 and 100 walkspeed, or 50 and 130 jumppower, and L to re-get all the cows (basically might fix some issues)"})
 local Paragraph = Tab5:CreateParagraph({Title = "Formation", Content = "Cowking by default moves cows to your cursor, but you can switch between mouse mode and formation mode. By pressing Z, it switches from mouse mode to formation mode (or vice versa), during formation mode - cows line up behind you. Note I will add more formations later and make this entire system customizable. FOR ALL COWS, FORMATION MODE OR MOUSE MODE, YOU WILL NEED TO BE SOMEWHAT CLOSE TO THE COWS TO BEGIN CONTROLLING THEM"})
 local Button = Tab5:CreateButton({
@@ -1028,3 +1141,168 @@ local Toggle = Tab5:CreateToggle({
    end,
 })
 
+local Tab6 = Window:CreateTab("gay", 4483362458) -- Title, Image
+
+-- State variables
+local grabtoolsEnabled = false
+local grabtoolsConnection = nil
+local targetToolNames = {} -- list of tool names to pickup, empty = all
+
+-- Notification helper
+local function notify(title, message)
+    print(title .. ": " .. message)  -- replace with your UI notification if you want
+end
+
+-- Check if tool should be picked up
+local function shouldPickupTool(toolName)
+    if #targetToolNames == 0 then
+        return true -- pick all tools if no filter set
+    end
+
+    for _, targetName in ipairs(targetToolNames) do
+        if string.lower(toolName) == string.lower(targetName) then
+            return true
+        end
+    end
+    return false
+end
+
+-- Equip matching tools in workspace
+local function equipTools()
+    if not player.Character then return end
+    local humanoid = player.Character:FindFirstChildWhichIsA("Humanoid")
+    if not humanoid then return end
+
+    for _, child in ipairs(workspace:GetChildren()) do
+        if child:IsA("Tool") and child:FindFirstChild("Handle") then
+            if shouldPickupTool(child.Name) then
+                humanoid:EquipTool(child)
+            end
+        end
+    end
+end
+
+-- Enable grabtools: equip and connect event to equip on new tool spawn
+local function enableGrabtools()
+    if grabtoolsEnabled then return end
+    grabtoolsEnabled = true
+
+    equipTools()
+
+    if grabtoolsConnection then
+        grabtoolsConnection:Disconnect()
+    end
+
+    grabtoolsConnection = workspace.ChildAdded:Connect(function(child)
+        if player.Character and child:IsA("Tool") and child:FindFirstChild("Handle") then
+            if shouldPickupTool(child.Name) then
+                wait(0.1) -- small delay to let tool fully load
+                local humanoid = player.Character:FindFirstChildWhichIsA("Humanoid")
+                if humanoid then
+                    humanoid:EquipTool(child)
+                end
+            end
+        end
+    end)
+
+    local targetText = #targetToolNames > 0 and table.concat(targetToolNames, ", ") or "all tools"
+    notify("Grabtools", "Enabled - Picking up: " .. targetText)
+end
+
+-- Disable grabtools: disconnect event and update state
+local function disableGrabtools()
+    if not grabtoolsEnabled then return end
+    grabtoolsEnabled = false
+
+    if grabtoolsConnection then
+        grabtoolsConnection:Disconnect()
+        grabtoolsConnection = nil
+    end
+
+    notify("Grabtools", "Disabled")
+end
+
+-- Toggle grabtools state
+local function toggleGrabtools()
+    if grabtoolsEnabled then
+        disableGrabtools()
+    else
+        enableGrabtools()
+    end
+end
+
+-- Parse comma-separated tool names from string input
+local function parseToolNames(inputText)
+    local names = {}
+    if inputText == "" then
+        return names
+    end
+
+    for name in string.gmatch(inputText, "([^,]+)") do
+        local trimmedName = string.match(name, "^%s*(.-)%s*$")
+        if trimmedName ~= "" then
+            table.insert(names, trimmedName)
+        end
+    end
+
+    return names
+end
+
+-- Scan workspace for tools with Handle and return list of unique names
+local function scanWorkspaceTools()
+    local seen = {}
+    local tools = {}
+
+    for _, obj in ipairs(workspace:GetChildren()) do
+        if obj:IsA("Tool") and obj:FindFirstChild("Handle") then
+            if not seen[obj.Name] then
+                seen[obj.Name] = true
+                table.insert(tools, obj.Name)
+            end
+        end
+    end
+
+    table.sort(tools)
+    return tools
+end
+
+-- Dropdown for selecting tools dynamically found in workspace
+local ToolDropdown = Tab6:CreateDropdown({
+    Name = "Select Target Tools (dropdown)",
+    Options = {"No tools found"},
+    CurrentOption = nil,
+    MultipleOptions = true,
+    Flag = "ToolDropdownFlag",
+    Callback = function(selected)
+        targetToolNames = selected
+        notify("Target Tools Updated (Dropdown)", #targetToolNames > 0 and table.concat(targetToolNames, ", ") or "all tools")
+        -- Update TextBox to reflect dropdown selections (optional)
+        ToolNameInput:Set(table.concat(targetToolNames, ", "))
+    end,
+})
+
+-- Button to toggle grabtools on/off
+local ToggleButton = Tab6:CreateButton({
+    Name = "Toggle Grabtools",
+    Callback = function()
+        toggleGrabtools()
+    end,
+})
+
+-- Button to refresh dropdown options from workspace
+local RefreshButton = Tab6:CreateButton({
+    Name = "Refresh Tool List",
+    Callback = function()
+        local tools = scanWorkspaceTools()
+        if #tools == 0 then tools = {"No tools found"} end
+        ToolDropdown:Refresh(tools)
+        notify("Tool List Refreshed", "Found " .. tostring(#tools) .. " tools.")
+    end,
+})
+
+-- Initial refresh of dropdown options on script start
+do
+    local tools = scanWorkspaceTools()
+    if #tools == 0 then tools = {"No tools found"} end
+    ToolDropdown:Refresh(tools)
+end
