@@ -1,325 +1,1028 @@
-local xoffset = 3
-local yoffset = 0
-local zoffset = -2
-local bosshrp = nil
-local forcefield = true
-local autoboss = true
-local speed = 0.1
-local autom1 = true
-local RunService = game:GetService("RunService") -- Make sure it's at the top!
-local handlerConnection -- for Heartbeat
-local runningTask -- for spawned autoboss task
-local bossdistance = 0
-local bossalive = false
-local onetimebossget = false
-local onetimevoid = false
-local onetimeweapon = false
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
--- Get necessary services
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
-local VirtualInputManager = game:GetService("VirtualInputManager")
+local UserInputService = game:GetService("UserInputService")
+local ProximityPromptService = game:GetService("ProximityPromptService")
 
--- Function to check for ForceField on the player and update 'forcefield' variable
+local characterFolder = workspace:WaitForChild("Characters")
+local player = Players.LocalPlayer
+local mouse = player:GetMouse()
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+local hrp = character:WaitForChild("HumanoidRootPart")
+local humanoid = character:WaitForChild("Humanoid")
 
-local function updatedistance()
-    bossget()
-    local character = game.Players.LocalPlayer.Character
-    if character and bosshrp then
-        local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
-        if humanoidRootPart then
-            bossdistance = math.round((humanoidRootPart.Position - bosshrp.Position).Magnitude * 100) / 100
-        end
-    end
-end
+local cleanupLoopRunning = false
+local cleanupLoopThread = nil
 
-local function ffhandler()
-    -- Get the player's name
-    local playerName = game.Players.LocalPlayer.Name
+local walkSpeedConnection = nil
+local loserspeed = 16
 
-    -- Build the path to workspace.Entities.<YourName>
-    local entity = workspace:FindFirstChild("Entities")
-    if not entity then
-        warn("Entities folder not found!")
-        return
-    end
+local cowvalue = 1
 
-    -- Find your character inside Entities
-    local playerEntity = entity:FindFirstChild(playerName)
-    if not playerEntity then
-        warn("Player entity not found inside Entities!")
-        return
-    end
+local PromptButtonHoldBeganConnection = nil
+local PromptShownConnection = nil
+local originalDurations = {}
 
-    -- Check if the ForceField exists
-    if playerEntity:FindFirstChild("ForceField") then
-        forcefield = true
-    else
-        forcefield = false
-    end
-end
+local itemList = {
+	"Basket",
+	"Bone Chestpiece",
+	"Bucket",
+	"Cap",
+	"Hood",
+	"Mallet",
+	"Purple Dye",
+	"Rope",
+	"Spear",
+	"Stone Axe",
+	"Stone Hammer",
+	"Stone Knife",
+	"Stone Pickaxe",
+	"Tunic",
+	"Vest",
+	"War Horn",
+	"Wolf Headress",
+	"Wood Club",
+	"Wood Knife"
+}
 
---roller
-local function roll()
-    -- Define the args
-    local rollargs = {
-        [1] = {
-            [1] = {
-                ["Module"] = "Dash"
-            },
-            [2] = "\5"
-        }
-    }
+local jobList = {
+	"Harvester",
+	"Hunter",
+	"Warrior",
+	"Engineer",
+	"Farmer",
+	"Tailor"
+}
 
-    -- Fire the event with the provided args
-    game:GetService("ReplicatedStorage"):WaitForChild("Bridgenet2Main"):WaitForChild("dataRemoteEvent"):FireServer(unpack(rollargs))
-end
+local Noclipping = nil
+local Clip = nil
 
--- Function to teleport the player to the boss's HumanoidRootPart with offsets
-local function bosstp()
-    -- Ensure bosshrp is valid (it should be set later)
-    if not bosshrp or not bosshrp:IsA("BasePart") then
-        warn("Invalid bosshrp")
-        return
-    end
+local hitboxConnection = nil
+local originalSizes = {} -- [playerName] = Vector3
+local active = false
+local hbsize = 15
 
-    -- Get the player's character and humanoid root part
-    local character = game.Players.LocalPlayer.Character
-    if not character then return end
-    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-    
-    -- Teleport the player to the bosshrp with offsets
-    local targetPosition = bosshrp.Position + Vector3.new(xoffset, yoffset, zoffset)
-    
-    -- Set the player's humanoid root part to the new position
-    humanoidRootPart.CFrame = CFrame.new(targetPosition)
-end
 
--- Function to anchor the player to the boss's HumanoidRootPart with offsets and facing the boss
-local function bossanchor()
-    -- Ensure the boss's HumanoidRootPart (bosshrp) is available
-    if not bosshrp or not bosshrp:IsA("BasePart") then
-        warn("Invalid bosshrp")
-        return
+local jp = 10
+local toggleActive = false
+
+local danceActive = false
+
+function forceWalkSpeed()
+    print("walkspeed")
+
+    if walkSpeedConnection then
+        walkSpeedConnection:Disconnect()
     end
 
-    -- Get the local player's character and humanoid root part
-    local localPlayer = game.Players.LocalPlayer
-    local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
-    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-
-    -- Get the boss's position and rotation (direction he's facing)
-    local targetPosition = bosshrp.Position
-    local targetRotation = bosshrp.CFrame.LookVector  -- Direction the boss is facing
-
-    -- Apply the offsets to the target position
-    local desiredPosition = Vector3.new(
-        targetPosition.X + xoffset,  -- Apply xoffset
-        targetPosition.Y + yoffset,  -- Apply yoffset
-        targetPosition.Z + zoffset   -- Apply zoffset
-    )
-
-    -- Set the position of the player's HumanoidRootPart
-    humanoidRootPart.CFrame = CFrame.new(desiredPosition.X, humanoidRootPart.Position.Y, desiredPosition.Z)
-
-    -- Make the player face the boss (aligning orientation with the boss)
-    humanoidRootPart.CFrame = CFrame.new(humanoidRootPart.Position, targetPosition)
-end
-
--- Function to dynamically get the boss's HumanoidRootPart
-local function bossget() -- Handled by task spawn, if autoboss, run every 0.5
-    -- Get all the entities in the workspace
-    local entities = workspace:WaitForChild("Entities")
-    
-    -- Loop through each child of "Entities"
-    for _, entity in pairs(entities:GetChildren()) do
-        -- Check if the entity is not a player (filter out players)
-        if not game.Players:GetPlayerFromCharacter(entity) then
-            -- If it's not a player, then this is the boss
-            if entity:FindFirstChild("HumanoidRootPart") then
-                -- Set the global variable bosshrp to the found boss's HumanoidRootPart
-                bosshrp = entity.HumanoidRootPart
-                bossalive = true
-                if bossalive == true and onetimebossget == false then
-                    print("Boss Detected")
-                    onetimebossget = true
-                return
+    walkSpeedConnection = RunService.RenderStepped:Connect(function()
+        local charFolder = workspace:FindFirstChild("Characters")
+        if charFolder then
+            local char = charFolder:FindFirstChild(player.Name)
+            if char and char:FindFirstChild("WalkSpeed") then
+                char.WalkSpeed.Value = loserspeed
             end
         end
-    end
-
-    -- If no boss was found, print a warning
-    bossalive = false
+    end)
 end
 
-local function bosshandler()
-    updatedistance()
-    wait(0.005)
-    if bossdistance <= 30 then
-        bossanchor()
-    elseif bossdistance => 30 then
-        bosstp()
+function stopForceWalkSpeed()
+    if walkSpeedConnection then
+        walkSpeedConnection:Disconnect()
+        walkSpeedConnection = nil
     end
 end
 
-local function voidhandler() -- CHECK FOR FORCEFIELD EVERY FRAME, IF NO FORCEFIELD THEN VOID
-    ffhandler()
-    wait(0.001)
-    if forcefield == false then
-        void()
-    end
-end
+function startCleanupLoop()
+    if cleanupLoopRunning then return end
+    cleanupLoopRunning = true
 
-local function handler() -- RUN EVERY FRAME if autoboss
-    voidhandler()
-    wait(0.001)
-    bosshandler()
-end
-    
+    cleanupLoopThread = task.spawn(function()
+        while cleanupLoopRunning do
+            local map = workspace:FindFirstChild("Map")
+            local regionMarkers = workspace:FindFirstChild("RegionMarkers")
 
-local function void()
-    if forcefield == false then
-        roll()
-        wait(0.05)
-        local character = game.Players.LocalPlayer.Character
-        local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-        local currentPosition = humanoidRootPart.Position
-        local newPosition = Vector3.new(currentPosition.X, -999, currentPosition.Z)
-    end
-    if forcefield == false and onetimevoid == false then
-        print("Invincibility module initialized")
-        onetimevoid = true
-end
+            if map then
+                if map:FindFirstChild("Air") then
+                    for _, obj in ipairs(map.Air:GetDescendants()) do
+                        obj:Destroy()
+                    end
+                end
 
-local function m1
-    if autoboss == true and forcefield == true and autom1 == true then
-        local m1args = {
-            [1] = {
-                [1] = {
-                    ["Module"] = "M1"
-                },
-                [2] = "\5"
-            }
-        }
-
-        game.ReplicatedStorage:WaitForChild("Bridgenet2Main"):WaitForChild("dataRemoteEvent"):FireServer(unpack(m1args))
-    end
-end
-
-local function kagune
-    if autoboss == true and forcefield == true then
-        kagunecheck()
-        wait(0.005)
-        if equipped == false then
-            VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
-            wait(0.01)
-            VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
-        end
-    end
-end
-
-local function kagunecheck()
-    local playerName = game.Players.LocalPlayer.Name
-
-    -- Build the path to workspace.Entities.<YourName>
-    local entity = workspace:FindFirstChild("Entities")
-    if not entity then
-        warn("Entities folder not found!")
-        return
-    end
-
-    -- Find your character inside Entities
-    local playerEntity = entity:FindFirstChild(playerName)
-    if not playerEntity then
-        warn("Player entity not found inside Entities!")
-        return
-    end
-
-    local toggle = playerEntity:FindFirstChild("Toggle")
-    if not toggle then
-        warn("Toggle not found inside Player!")
-        return
-    end
-
-    if toggle and toggle.Value == false then
-        VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.BackSlash, false, game)
-        wait(0.1)
-        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.BackSlash, false, game)
-    end
-
-    if toggle and onetimeweapon == false then
-        print("Weapon module initiliazed")
-        onetimeweapon = true
-end
-
-function status()
-    bossget()
-    print("Autoboss status: " .. tostring(autoboss))
-    if autoboss then
-        -- SAFETY: Disconnect existing handlerConnection if it exists
-        if handlerConnection then
-            handlerConnection:Disconnect()
-            handlerConnection = nil
-        end
-
-        -- Start the autoboss task
-        runningTask = task.spawn(function()
-            while autoboss do
-                if bossalive then
-                    kagune() -- Kagune function runs a weaponcheck, if no weapon equipped then press E (if forcefield true)
-                    m1() -- M1 function checks if forcefield and autom1 = true, then M1s
-                task.wait(speed)
+                if map:FindFirstChild("Barrier") then
+                    for _, obj in ipairs(map.Barrier:GetDescendants()) do
+                        obj:Destroy()
+                    end
+                end
             end
-        end)
 
-        -- Start boss refreshing task
-        task.spawn(function()
-            while autoboss do
-                bossget()
-                task.wait(0.5)
+            if regionMarkers then
+                for _, obj in ipairs(regionMarkers:GetDescendants()) do
+                    obj:Destroy()
+                end
             end
-        end)
 
-        -- Hook Heartbeat updates to handler
-        handlerConnection = RunService.Heartbeat:Connect(function()
-            handler()
-        end)
-
-    else
-        -- Autoboss disabled
-
-        -- Disconnect Heartbeat safely
-        if handlerConnection then
-            handlerConnection:Disconnect()
-            handlerConnection = nil
+            task.wait(5)
         end
-
-        -- runningTask and bossgetTask die naturally because their while-loops check autoboss!
-    end
+    end)
 end
 
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+function stopCleanupLoop()
+    cleanupLoopRunning = false
+end
+
+function createCowControllerTool()
+	local tool = Instance.new("Tool")
+	tool.Name = "CowController"
+	tool.RequiresHandle = false
+	tool.CanBeDropped = false
+	tool.Parent = player:WaitForChild("Backpack")
+
+	local equipped = false
+	local cows = {}
+	local activeFormationCows = {}
+
+	local editingJumpPower = false
+	local cowWalkSpeed = 24
+	local cowJumpPower = 58.24824142456055
+	local savedWalkSpeed = cowWalkSpeed
+	local walkCycle = false
+	local jumpCycle = false
+	local walkToggledZero = false
+	local formationMode = false
+
+	local function notify(title, text)
+		pcall(function()
+			if Rayfield and Rayfield.Notify then
+				Rayfield:Notify({
+					Title = title,
+					Content = text,
+					Duration = 6.5,
+					Image = 4483362458
+				})
+			end
+		end)
+	end
+
+	local function clearLabels()
+		for _, cow in pairs(activeFormationCows) do
+			local head = cow:FindFirstChild("Head")
+			if head then
+				local label = head:FindFirstChild("CowLabel")
+				if label then
+					label:Destroy()
+				end
+			end
+		end
+	end
+
+	local function labelCow(cow, number)
+		local head = cow:FindFirstChild("Head")
+		if not head or head:FindFirstChild("CowLabel") then return end
+
+		local billboard = Instance.new("BillboardGui")
+		billboard.Name = "CowLabel"
+		billboard.Adornee = head
+		billboard.Size = UDim2.new(0, 100, 0, 40)
+		billboard.StudsOffset = Vector3.new(0, 2.5, 0)
+		billboard.AlwaysOnTop = true
+		billboard.LightInfluence = 0
+		billboard.MaxDistance = 150
+		billboard.Parent = head
+
+		local label = Instance.new("TextLabel")
+		label.Size = UDim2.new(1, 0, 1, 0)
+		label.BackgroundTransparency = 1
+		label.Text = tostring(number)
+		label.TextColor3 = Color3.new(1, 1, 1)
+		label.TextStrokeTransparency = 0.5
+		label.TextScaled = false
+		label.Font = Enum.Font.GothamBold
+		label.Parent = billboard
+	end
+
+	local function getCows()
+		cows = {}
+
+		local function collectCows(container)
+			for _, obj in ipairs(container:GetChildren()) do
+				if obj.Name == "Cow" and obj:FindFirstChild("Humanoid") then
+					table.insert(cows, obj)
+				end
+			end
+		end
+
+		collectCows(workspace)
+
+		local map = workspace:FindFirstChild("Map")
+		if map and map:FindFirstChild("Resources") then
+			local animals = map.Resources:FindFirstChild("Animals")
+			if animals then
+				collectCows(animals)
+			end
+		end
+
+		for _, cow in pairs(cows) do
+			local hum = cow:FindFirstChild("Humanoid")
+			if hum then
+				hum.WalkSpeed = cowWalkSpeed
+				hum.JumpPower = cowJumpPower
+			end
+		end
+	end
+
+	local function applyStats()
+		for _, cow in pairs(cows) do
+			local hum = cow:FindFirstChild("Humanoid")
+			if hum then
+				hum.WalkSpeed = cowWalkSpeed
+				hum.JumpPower = cowJumpPower
+			end
+		end
+	end
+
+	tool.Equipped:Connect(function()
+		equipped = true
+		getCows()
+	end)
+
+	tool.Unequipped:Connect(function()
+		equipped = false
+		clearLabels()
+	end)
+
+	RunService.RenderStepped:Connect(function()
+		if not equipped then return end
+
+		if formationMode then
+			activeFormationCows = {}
+			for _, cow in pairs(cows) do
+				local referencePart = cow:FindFirstChild("HumanoidRootPart") or cow:FindFirstChild("Torso") or cow:FindFirstChildWhichIsA("BasePart")
+				if referencePart and humanoidRootPart then
+					if (referencePart.Position - humanoidRootPart.Position).Magnitude <= 100 then
+						table.insert(activeFormationCows, cow)
+					end
+				end
+			end
+
+			for i, cow in ipairs(activeFormationCows) do
+				local row = math.floor((i - 1) / 5)
+				local col = (i - 1) % 5
+
+				local offsetX = (col - 2) * 5
+				local offsetZ = 5 + row * 7.5
+
+				local formationPos = humanoidRootPart.Position - humanoidRootPart.CFrame.LookVector * offsetZ
+				formationPos = formationPos + humanoidRootPart.CFrame.RightVector * offsetX
+
+				local hum = cow:FindFirstChild("Humanoid")
+				if hum then
+					hum:MoveTo(formationPos)
+				end
+
+				labelCow(cow, i)
+			end
+		else
+			if mouse.Hit then
+				local target = mouse.Hit.Position
+				for _, cow in pairs(cows) do
+					local hum = cow:FindFirstChild("Humanoid")
+					if hum then
+						hum.WalkToPoint = target
+					end
+				end
+			end
+		end
+	end)
+
+	UserInputService.InputBegan:Connect(function(input, gameProcessed)
+		if not equipped or gameProcessed then return end
+
+		local key = input.KeyCode
+
+		if key == Enum.KeyCode.H then
+			for _, cow in pairs(cows) do
+				local hum = cow:FindFirstChild("Humanoid")
+				if hum then
+					hum.Jump = true
+				end
+			end
+
+		elseif key == Enum.KeyCode.R then
+			editingJumpPower = not editingJumpPower
+			notify("Editing Mode", editingJumpPower and "JumpPower" or "WalkSpeed")
+
+		elseif key == Enum.KeyCode.Q then
+			if not editingJumpPower then
+				walkToggledZero = not walkToggledZero
+				if walkToggledZero then
+					savedWalkSpeed = cowWalkSpeed
+					cowWalkSpeed = 0
+				else
+					cowWalkSpeed = savedWalkSpeed
+				end
+				applyStats()
+				notify("WalkSpeed", "Toggled to " .. cowWalkSpeed)
+			end
+
+		elseif key == Enum.KeyCode.M then
+			if editingJumpPower then
+				jumpCycle = not jumpCycle
+				cowJumpPower = jumpCycle and 130 or 58.24824142456055
+				notify("JumpPower", "Cycled to " .. cowJumpPower)
+			else
+				walkCycle = not walkCycle
+				cowWalkSpeed = walkCycle and 100 or 24
+				savedWalkSpeed = cowWalkSpeed
+				notify("WalkSpeed", "Cycled to " .. cowWalkSpeed)
+			end
+			applyStats()
+
+		elseif key == Enum.KeyCode.Equals or key == Enum.KeyCode.KeypadPlus then
+			if editingJumpPower then
+				cowJumpPower += cowvalue
+				notify("JumpPower", tostring(cowJumpPower))
+			else
+				cowWalkSpeed += cowvalue
+				savedWalkSpeed = cowWalkSpeed
+				notify("WalkSpeed", tostring(cowWalkSpeed))
+			end
+			applyStats()
+
+		elseif key == Enum.KeyCode.Minus or key == Enum.KeyCode.KeypadMinus then
+			if editingJumpPower then
+				cowJumpPower -= cowvalue
+				notify("JumpPower", tostring(cowJumpPower))
+			else
+				cowWalkSpeed -= cowvalue
+				savedWalkSpeed = cowWalkSpeed
+				notify("WalkSpeed", tostring(cowWalkSpeed))
+			end
+			applyStats()
+
+		elseif key == Enum.KeyCode.L then
+			notify("Cow fixed maybe")
+			if formationMode then
+				clearLabels()
+				getCows()
+				applyStats()
+			else
+				getCows()
+				applyStats()
+			end
+
+		elseif key == Enum.KeyCode.Z then
+			formationMode = not formationMode
+			clearLabels()
+			notify("Mode Switched", formationMode and "Formation Mode" or "Mouse Mode")
+		end
+	end)
+end
+
+function giveWeaponStealerTool()
+	local tool = Instance.new("Tool")
+	tool.Name = "Weapon Stealer"
+	tool.RequiresHandle = false
+	tool.Parent = player:WaitForChild("Backpack")
+
+	local highlight
+	local targetPlayer = nil
+	local running = false
+
+	local function clearHighlight()
+		if highlight then
+			highlight:Destroy()
+			highlight = nil
+		end
+		targetPlayer = nil
+	end
+
+	local function createHighlight(model)
+		clearHighlight()
+		highlight = Instance.new("Highlight")
+		highlight.Adornee = model
+		highlight.FillColor = Color3.new(1, 0, 0)
+		highlight.OutlineColor = Color3.new(1, 1, 1)
+		highlight.Parent = workspace
+	end
+
+	local function findTargetPlayer()
+		local closestPlayer = nil
+		local shortestDist = math.huge
+
+		for _, otherPlayer in ipairs(Players:GetPlayers()) do
+			if otherPlayer ~= player and otherPlayer.Character and otherPlayer.Character:FindFirstChild("HumanoidRootPart") then
+				local hrp = otherPlayer.Character.HumanoidRootPart
+				local screenPos, onScreen = workspace.CurrentCamera:WorldToScreenPoint(hrp.Position)
+				if onScreen then
+					local dist = (Vector2.new(mouse.X, mouse.Y) - Vector2.new(screenPos.X, screenPos.Y)).Magnitude
+					if dist < 50 and dist < shortestDist then
+						closestPlayer = otherPlayer
+						shortestDist = dist
+					end
+				end
+			end
+		end
+
+		return closestPlayer
+	end
+
+	local function fireAllProximityPromptsOnPlayer(target)
+		if not target or not target.Character then return end
+		for _, tool in ipairs(target.Character:GetChildren()) do
+			if tool:IsA("Tool") then
+				for _, descendant in ipairs(tool:GetDescendants()) do
+					if descendant:IsA("ProximityPrompt") then
+						fireproximityprompt(descendant)
+					end
+				end
+			end
+		end
+	end
+
+	local function onRenderStep()
+		local target = findTargetPlayer()
+		if target ~= targetPlayer then
+			if target then
+				createHighlight(target.Character)
+			else
+				clearHighlight()
+			end
+			targetPlayer = target
+		end
+	end
+
+	tool.Equipped:Connect(function()
+		if running then return end
+		running = true
+		RunService:BindToRenderStep("WeaponStealerHighlight", Enum.RenderPriority.Camera.Value + 1, onRenderStep)
+	end)
+
+	tool.Unequipped:Connect(function()
+		running = false
+		RunService:UnbindFromRenderStep("WeaponStealerHighlight")
+		clearHighlight()
+		targetPlayer = nil
+	end)
+
+	tool.Activated:Connect(function()
+		if targetPlayer then
+			fireAllProximityPromptsOnPlayer(targetPlayer)
+		end
+	end)
+end
+
+function enableInstantProximityPrompts()
+    -- Disconnect first to avoid stacking
+    disableInstantProximityPrompts()
+
+    -- Override prompt durations when shown
+    PromptShownConnection = ProximityPromptService.PromptShown:Connect(function(prompt)
+        pcall(function()
+            if not originalDurations[prompt] then
+                originalDurations[prompt] = prompt.HoldDuration
+            end
+            prompt.HoldDuration = 0
+        end)
+    end)
+
+    -- Override all existing prompts
+    for _, v in ipairs(workspace:GetDescendants()) do
+        if v:IsA("ProximityPrompt") then
+            pcall(function()
+                if not originalDurations[v] then
+                    originalDurations[v] = v.HoldDuration
+                end
+                v.HoldDuration = 0
+            end)
+        end
+    end
+
+    -- Fire immediately on hold
+    PromptButtonHoldBeganConnection = ProximityPromptService.PromptButtonHoldBegan:Connect(function(prompt)
+        pcall(function()
+            prompt.HoldDuration = 0
+            fireproximityprompt(prompt)
+        end)
+    end)
+end
+
+function disableInstantProximityPrompts()
+    if PromptButtonHoldBeganConnection then
+        PromptButtonHoldBeganConnection:Disconnect()
+        PromptButtonHoldBeganConnection = nil
+    end
+
+    if PromptShownConnection then
+        PromptShownConnection:Disconnect()
+        PromptShownConnection = nil
+    end
+
+    -- Restore durations
+    for prompt, original in pairs(originalDurations) do
+        if prompt and prompt:IsDescendantOf(workspace) then
+            pcall(function()
+                prompt.HoldDuration = original
+            end)
+        end
+    end
+
+    -- Clear stored values
+    originalDurations = {}
+end
+
+function startfb()
+  	if brightLoop then
+		brightLoop:Disconnect()
+	end
+	local function brightFunc()
+		Lighting.Brightness = 2
+		Lighting.ClockTime = 14
+		Lighting.FogEnd = 100000
+		Lighting.GlobalShadows = false
+		Lighting.OutdoorAmbient = Color3.fromRGB(128, 128, 128)
+	end
+
+	brightLoop = RunService.RenderStepped:Connect(brightFunc)
+end
+
+function endfb()
+  if brightLoop then
+		brightLoop:Disconnect()
+	end
+end
+
+function noclip()
+  Clip = false
+	wait(0.1)
+	local function NoclipLoop()
+		if Clip == false and player.Character ~= nil then
+			for _, child in pairs(player.Character:GetDescendants()) do
+				if child:IsA("BasePart") and child.CanCollide == true and child.Name ~= floatName then
+					child.CanCollide = false
+				end
+			end
+		end
+	end
+	Noclipping = RunService.Stepped:Connect(NoclipLoop)
+	if args[1] and args[1] == 'nonotify' then return end
+	notify('Noclip','Noclip Enabled')
+end
+
+function clip()
+  if Noclipping then
+		Noclipping:Disconnect()
+	end
+	Clip = true
+	print("Noclip disabled")
+end
+
+local function applyHitbox(playerName)
+	local char = characterFolder:FindFirstChild(playerName)
+	if not char then return end
+
+	local hrp = char:FindFirstChild("HumanoidRootPart")
+	if not hrp then return end
+
+	if not originalSizes[playerName] then
+		originalSizes[playerName] = hrp.Size
+	end
+
+	hrp.Size = Vector3.new(hbsize, hbsize, hbsize)
+	hrp.Transparency = hbtrans
+	hrp.CanCollide = false
+end
+
+local function revertHitbox(playerName)
+	local char = characterFolder:FindFirstChild(playerName)
+	if not char then return end
+
+	local hrp = char:FindFirstChild("HumanoidRootPart")
+	if not hrp then return end
+
+	local original = originalSizes[playerName]
+	if original then
+		hrp.Size = original
+	else
+		hrp.Size = Vector3.new(2, 2, 1) -- fallback size if original wasn't saved
+	end
+	hrp.Transparency = 1
+	hrp.CanCollide = true
+end
+
+function hitboxexpanderstart()
+	if active then return end
+	active = true
+
+	-- Apply to existing players
+	for _, char in pairs(characterFolder:GetChildren()) do
+		if char:IsA("Model") and char:FindFirstChild("HumanoidRootPart") then
+			applyHitbox(char.Name)
+		end
+	end
+
+	-- Update loop
+	hitboxConnection = RunService.Heartbeat:Connect(function()
+		for _, player in pairs(Players:GetPlayers()) do
+			local char = characterFolder:FindFirstChild(player.Name)
+			if char and char:FindFirstChild("HumanoidRootPart") then
+				applyHitbox(player.Name)
+			end
+		end
+	end)
+end
+
+function hitboxexpanderend()
+	if not active then return end
+	active = false
+
+	-- Revert all
+	for name, _ in pairs(originalSizes) do
+		revertHitbox(name)
+	end
+
+	-- Disconnect loop
+	if hitboxConnection then
+		hitboxConnection:Disconnect()
+		hitboxConnection = nil
+	end
+
+	originalSizes = {}
+end
+
+-- Define the jumper functions
+local function getHumanoid()
+	local player = game:GetService("Players").LocalPlayer
+	if player.Character then
+		return player.Character:FindFirstChildOfClass("Humanoid")
+	end
+end
+
+local function getRoot(char)
+	return char:FindFirstChild("HumanoidRootPart") or char:WaitForChild("HumanoidRootPart")
+end
+
+
+
+function jumppowerstart()
+	local humanoid = getHumanoid()
+	if not humanoid then return end
+
+	if not humanoid:FindFirstChild("OriginalJumpPower") then
+		local originalJP = Instance.new("NumberValue")
+		originalJP.Name = "OriginalJumpPower"
+		originalJP.Value = humanoid.JumpPower
+		originalJP.Parent = humanoid
+	end
+
+	humanoid.JumpPower = jp
+end
+
+function jumppowerend()
+	local humanoid = getHumanoid()
+	if not humanoid then return end
+
+	local originalJP = humanoid:FindFirstChild("OriginalJumpPower")
+	if originalJP then
+		humanoid.JumpPower = originalJP.Value
+		originalJP:Destroy()
+	end
+end
+
 local Window = Rayfield:CreateWindow({
-    Name = "Fatman fanclub",
-    LoadingTitle = "Exps for a shitty ass game",
-    LoadingSubtitle = "by wad",
-    Theme = "Amethyst",
-    ConfigurationSaving = {
-        Enabled = true,
-        FolderName = "ghoulreautototo",
-        FileName = "monkey"
-    }
+   Name = "Rayfield Example Window",
+   Icon = 0, -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
+   LoadingTitle = "Rayfield Interface Suite",
+   LoadingSubtitle = "by Sirius",
+   ShowText = "Rayfield", -- for mobile users to unhide rayfield, change if you'd like
+   Theme = "Default", -- Check https://docs.sirius.menu/rayfield/configuration/themes
+
+   ToggleUIKeybind = "K", -- The keybind to toggle the UI visibility (string like "K" or Enum.KeyCode)
+
+   DisableRayfieldPrompts = false,
+   DisableBuildWarnings = false, -- Prevents Rayfield from warning when the script has a version mismatch with the interface
+
+   ConfigurationSaving = {
+      Enabled = true,
+      FolderName = waad, -- Create a custom folder for your hub/game
+      FileName = "WaadSurvival"
+   },
+
+   Discord = {
+      Enabled = true, -- Prompt the user to join your Discord server if their executor supports it
+      Invite = "https://discord.gg/EVk2KPT3", -- The Discord invite code, do not include discord.gg/. E.g. discord.gg/ ABCD would be ABCD
+      RememberJoins = true -- Set this to false to make them join the discord every time they load it up
+   },
+
+   KeySystem = true, -- Set this to true to use our key system
+   KeySettings = {
+      Title = "Key",
+      Subtitle = "yes u need a key",
+      Note = "join discord for key pls", -- Use this to tell the user how to get a key
+      FileName = "WaadsKey", -- It is recommended to use something unique as other scripts using Rayfield may overwrite your key file
+      SaveKey = false, -- The user's key will be saved, but if you change the key, they will be unable to use your script
+      GrabKeyFromSite = true, -- If this is true, set Key below to the RAW site you would like Rayfield to get the key from
+      Key = {"https://raw.githubusercontent.com/shadywadd/tester/refs/heads/main/key"} -- List of keys that will be accepted by the system, can be RAW file links (pastebin, github etc) or simple strings ("hello","key22")
+   }
 })
 
-local BossTab = Window:CreateTab("Boss Autofarm", nil)
-BossTab:CreateSection("Boss Toggle")
+local Tab1 = Window:CreateTab("Client Mods", 4483362458) -- Title, Image
 
-BossTab:CreateToggle({
-    Name = "Boss Autofarm",
-    CurrentValue = false,
-    Flag = "Toggle1",
-    Callback = function(val)
-        autoboss = val
-        status()
-    end
+local Section = Tab1:CreateSection("Player stuff")
+
+local Toggle = Tab1:CreateToggle({
+   Name = "WalkSpeed Toggle",
+   CurrentValue = false,
+   Flag = "Toggle1",
+   Callback = function(Value)
+       if Value then
+           forceWalkSpeed()
+       else
+           stopForceWalkSpeed()
+       end
+   end,
 })
+
+local Slider = Tab1:CreateSlider({
+	Name = "WalkSpeed",
+	Range = {0, 200},
+	Increment = 5,
+	Suffix = " Speed",
+	CurrentValue = loserspeed,
+	Flag = "Slider_JP",
+	Callback = function(Value)
+		loserspeed = Value
+	end,
+})
+
+local Toggle = Tab1:CreateToggle({
+	Name = "Jump Power Toggle",
+	CurrentValue = false,
+	Flag = "Toggle_JumpPower",
+	Callback = function(Value)
+		toggleActive = Value
+		if toggleActive then
+			jumppowerstart()
+		else
+			jumppowerend()
+		end
+	end,
+})
+
+local Slider = Tab1:CreateSlider({
+	Name = "Jump Power",
+	Range = {0, 200},
+	Increment = 5,
+	Suffix = " JP",
+	CurrentValue = jp,
+	Flag = "Slider_JP",
+	Callback = function(Value)
+		jp = Value
+		if toggleActive then
+			jumppowerstart() -- Reapply with updated jp
+		end
+	end,
+})
+
+local Toggle = Tab1:CreateToggle({
+	Name = "Noclip Toggle",
+	CurrentValue = false,
+	Flag = "NoclipToggle",
+	Callback = function(Value)
+		local success, err = pcall(function()
+			if Value then
+				noclip()
+			else
+				clip()
+			end
+		end)
+	end,
+})
+
+
+local Divider = Tab1:CreateDivider()
+local Section = Tab1:CreateSection("Dumb stuff")
+
+--// State Variables
+local isDancing = false
+local isSpinning = false
+local spinSpeed = 5
+local danceTrack = nil
+
+--// Helper: Check R15
+local function isR15()
+	return humanoid.RigType == Enum.HumanoidRigType.R15
+end
+
+--// Helper: Get Random Dance ID
+local function getDanceId()
+	local dances = {
+		"27789359", "30196114", "248263260", "45834924", "33796059", "28488254", "52155728"
+	}
+	if isR15() then
+		dances = {
+			"3333432454", "4555808220", "4049037604", "4555782893",
+			"10214311282", "10714010337", "10713981723",
+			"10714372526", "10714076981", "10714392151", "11444443576"
+		}
+	end
+	return "rbxassetid://" .. dances[math.random(1, #dances)]
+end
+
+--// Dance Toggle
+Tab1:CreateToggle({
+	Name = "Toggle Dance",
+	CurrentValue = false,
+	Flag = "DanceToggle",
+	Callback = function(Value)
+		isDancing = Value
+
+		if isDancing then
+			local anim = Instance.new("Animation")
+			anim.AnimationId = getDanceId()
+			danceTrack = humanoid:LoadAnimation(anim)
+			danceTrack.Looped = true
+			danceTrack:Play()
+		else
+			if danceTrack then
+				danceTrack:Stop()
+				danceTrack:Destroy()
+				danceTrack = nil
+			end
+		end
+	end,
+})
+
+--// Spin Speed Slider
+Tab1:CreateSlider({
+	Name = "Spin Speed",
+	Range = {0, 50},
+	Increment = 1,
+	Suffix = "Speed",
+	CurrentValue = spinSpeed,
+	Flag = "SpinSlider",
+	Callback = function(Value)
+		spinSpeed = Value
+	end,
+})
+
+--// Spin Toggle
+Tab1:CreateToggle({
+	Name = "Toggle Spin",
+	CurrentValue = false,
+	Flag = "SpinToggle",
+	Callback = function(Value)
+		isSpinning = Value
+
+		local root = getRoot(character)
+		if not root then return end
+
+		-- Remove existing spinner if any
+		local existing = root:FindFirstChild("Spinning")
+		if existing then
+			existing:Destroy()
+		end
+
+		if isSpinning and spinSpeed > 0 then
+			local spin = Instance.new("BodyAngularVelocity")
+			spin.Name = "Spinning"
+			spin.MaxTorque = Vector3.new(0, math.huge, 0)
+			spin.AngularVelocity = Vector3.new(0, spinSpeed, 0)
+			spin.Parent = root
+		end
+	end,
+})
+
+--// Update spin in real-time when speed is changed
+RunService.RenderStepped:Connect(function()
+	if isSpinning then
+		local root = getRoot(character)
+		local spinning = root:FindFirstChild("Spinning")
+		if spinning then
+			spinning.AngularVelocity = Vector3.new(0, spinSpeed, 0)
+		end
+	end
+end)
+
+local Tab2 = Window:CreateTab("PVP", 4483362458) -- Title, Image
+
+local Section = Tab2:CreateSection("Reach (doesnt fully work but better than normal pvp)")
+local Toggle = Tab2:CreateToggle({
+   Name = "Hitbox Expander",
+   CurrentValue = false,
+   Flag = "hitboxtoggle",
+   Callback = function(Value)
+       if Value then
+           hitboxexpanderstart()
+       else
+           hitboxexpanderend()
+       end
+   end,
+})
+
+local Slider = Tab2:CreateSlider({
+	Name = "Hitbox Size",
+	Range = {0, 200},
+	Increment = 5,
+	Suffix = "",
+	CurrentValue = spinSpeed,
+	Flag = "Slider_JP",
+	Callback = function(Value)
+		hbsize = Value
+		if active then
+			hitboxexpanderend()
+			hitboxexpanderstart()
+		end
+	end,
+})
+
+
+local Divider = Tab2:CreateDivider()
+
+local Button = Tab2:CreateButton({
+   Name = "Weapon Stealer",
+   Callback = function()
+     giveWeaponStealerTool(game.Players.LocalPlayer)
+   end,
+})
+
+local Tab3 = Window:CreateTab("Crafting", 4483362458) -- Title, Image
+
+for _, itemName in ipairs(itemList) do
+	Tab3:CreateButton({
+		Name = "Craft " .. itemName,
+		Callback = function()
+			local args = {
+				game:GetService("ReplicatedStorage"):WaitForChild("Craftables"):WaitForChild(itemName)
+			}
+			game:GetService("ReplicatedStorage"):WaitForChild("CraftItem"):FireServer(unpack(args))
+		end
+	})
+end
+
+local Tab4 = Window:CreateTab("Jobs", 4483362458) -- Title, Image
+for _, jobName in ipairs(jobList) do
+	Tab4:CreateButton({
+		Name = "Switch to " .. jobName,
+		Callback = function()
+			local args = {
+				game:GetService("ReplicatedStorage"):WaitForChild("Jobs"):WaitForChild(jobName)
+			}
+			game:GetService("ReplicatedStorage"):WaitForChild("ChangeJob"):FireServer(unpack(args))
+		end
+	})
+end
+
+local Tab5 = Window:CreateTab("Misc", 4483362458) -- Title, Image
+
+local Toggle = Tab5:CreateToggle({
+   Name = "IntantPP Toggle",
+   CurrentValue = false,
+   Flag = "Toggle1",
+   Callback = function(Value)
+       if Value then
+           enableInstantProximityPrompts()
+       else
+           disableInstantProximityPrompts()
+       end
+   end,
+})
+
+local Toggle = Tab5:CreateToggle({
+   Name = "FullBright Toggle",
+   CurrentValue = false,
+   Flag = "Toggle1",
+   Callback = function(Value)
+       if Value then
+           startfb()
+       else
+           endfb()
+       end
+   end,
+})
+
+local Divider = Tab1:CreateDivider()
+local Paragraph = Tab5:CreateParagraph({Title = "W.I.P", Content = "CowKing is buggy, but really fun to use. Current keybinds are H to jump, Q to stop/unstop cows (must be in walkspeed editor mode), R to switch between walkspeed editor and jumppower editor, + and - to increase/decrease walkspeed/jumppower, M to switch between 24 and 100 walkspeed, or 50 and 130 jumppower, and L to re-get all the cows (basically might fix some issues)"})
+local Paragraph = Tab5:CreateParagraph({Title = "Formation", Content = "Cowking by default moves cows to your cursor, but you can switch between mouse mode and formation mode. By pressing Z, it switches from mouse mode to formation mode (or vice versa), during formation mode - cows line up behind you. Note I will add more formations later and make this entire system customizable. FOR ALL COWS, FORMATION MODE OR MOUSE MODE, YOU WILL NEED TO BE SOMEWHAT CLOSE TO THE COWS TO BEGIN CONTROLLING THEM"})
+local Button = Tab5:CreateButton({
+   Name = "CowKing",
+   Callback = function()
+    createCowControllerTool()
+   end,
+})
+
+local Toggle = Tab5:CreateToggle({
+   Name = "Delete barriers",
+   CurrentValue = false,
+   Flag = "Toggle1",
+   Callback = function(Value)
+       if Value then
+           startCleanupLoop()
+       else
+           stopCleanupLoop()
+       end
+   end,
+})
+
