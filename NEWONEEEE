@@ -63,7 +63,7 @@ local hitboxConnection = nil
 local originalSizes = {} -- [playerName] = Vector3
 local active = false
 local hbsize = 15
-
+local htbtrans = 0.7
 
 local jp = 10
 local toggleActive = false
@@ -580,6 +580,8 @@ function clip()
 end
 
 local function applyHitbox(playerName)
+	if playerName == Players.LocalPlayer.Name then return end -- exclude yourself
+
 	local char = characterFolder:FindFirstChild(playerName)
 	if not char then return end
 
@@ -692,10 +694,10 @@ function jumppowerend()
 end
 
 local Window = Rayfield:CreateWindow({
-   Name = "Rayfield Example Window",
+   Name = "waad hub",
    Icon = 0, -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
-   LoadingTitle = "Rayfield Interface Suite",
-   LoadingSubtitle = "by Sirius",
+   LoadingTitle = "this script is free if anyone made u pay for it u got scammed ",
+   LoadingSubtitle = "by wadadaddddadad on discord",
    ShowText = "Rayfield", -- for mobile users to unhide rayfield, change if you'd like
    Theme = "Default", -- Check https://docs.sirius.menu/rayfield/configuration/themes
 
@@ -720,7 +722,7 @@ local Window = Rayfield:CreateWindow({
    KeySettings = {
       Title = "Key",
       Subtitle = "yes u need a key",
-      Note = "join discord for key pls", -- Use this to tell the user how to get a key
+      Note = "join discord for key pls https://discord.gg/r7fv3zEX", -- Use this to tell the user how to get a key
       FileName = "WaadsKey", -- It is recommended to use something unique as other scripts using Rayfield may overwrite your key file
       SaveKey = false, -- The user's key will be saved, but if you change the key, they will be unable to use your script
       GrabKeyFromSite = true, -- If this is true, set Key below to the RAW site you would like Rayfield to get the key from
