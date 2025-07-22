@@ -1,0 +1,80 @@
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+
+local localPlayer = Players.LocalPlayer
+local name = localPlayer.Name
+local connection = nil
+local isChecking = false
+local isTeleporting = false
+
+function ArmorTP()
+    if isTeleporting then return end
+
+    local playerFolder = workspace.Players:FindFirstChild(name)
+    if not playerFolder then warn("Player folder not found.") return end
+
+    local hrp = playerFolder:FindFirstChild("HumanoidRootPart")
+    local humanoid = playerFolder:FindFirstChildOfClass("Humanoid")
+    local armorValueObj = playerFolder:FindFirstChild("BodyEffects") and playerFolder.BodyEffects:FindFirstChild("Armor")
+
+    if not hrp or not humanoid or not armorValueObj then
+        warn("Missing parts")
+        return
+    end
+
+    local originalCFrame = hrp.CFrame
+    local targetPosition = Vector3.new(-435, -22, 23)
+    local clickDetectorPart = workspace.Ignored.Shop:GetChildren()[28]
+    local clickDetector = clickDetectorPart and clickDetectorPart:FindFirstChildOfClass("ClickDetector")
+
+    if not clickDetector then warn("No click detector") return end
+
+    isTeleporting = true
+
+    -- Freeze movement
+    humanoid.PlatformStand = true
+    humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+
+    local startTime = tick()
+    repeat
+        hrp.CFrame = CFrame.new(targetPosition)
+        fireclickdetector(clickDetector)
+        RunService.Heartbeat:Wait()
+    until armorValueObj.Value >= 200 or (tick() - startTime) > 2
+
+    -- Return to original position
+    hrp.CFrame = originalCFrame
+    humanoid.PlatformStand = false
+    humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
+
+    isTeleporting = false
+end
+
+function Checker()
+    if isTeleporting then return end
+
+    local playerFolder = workspace.Players:FindFirstChild(name)
+    if playerFolder and playerFolder:FindFirstChild("BodyEffects") then
+        local armor = playerFolder.BodyEffects:FindFirstChild("Armor")
+        if armor and armor.Value < 200 then
+            ArmorTP()
+        end
+    end
+end
+
+-- Keybind toggle
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.K then
+        if isChecking then
+            if connection then connection:Disconnect() end
+            isChecking = false
+            print("Checker deactivated")
+        else
+            connection = RunService.RenderStepped:Connect(Checker)
+            isChecking = true
+            print("Checker activated")
+        end
+    end
+end)
