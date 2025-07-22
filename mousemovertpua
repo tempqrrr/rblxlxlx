@@ -1,0 +1,313 @@
+-- Services
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local StarterGui = game:GetService("StarterGui")
+
+-- Player and mouse
+local player = Players.LocalPlayer
+local mouse = player:GetMouse()
+
+-- State
+local enabled = false
+local mode = "mouse" -- 'mouse' or 'auto'
+local selection = nil
+local autoState = "none" -- 'orbit', 'slide', 'custom'
+local moverTable = {}
+local angle = 0
+local mouseRange = 15 -- initial max distance for mouse mode
+
+-- UI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "ControlStatusUI"
+screenGui.ResetOnSpawn = false
+screenGui.Enabled = false
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+local infoFrame = Instance.new("Frame")
+infoFrame.Size = UDim2.new(0, 200, 0, 100)
+infoFrame.Position = UDim2.new(0, 10, 0.5, -50)
+infoFrame.BackgroundTransparency = 0.5
+infoFrame.BackgroundColor3 = Color3.new(0, 0, 0)
+infoFrame.BorderSizePixel = 0
+infoFrame.Visible = false
+infoFrame.Parent = screenGui
+
+local infoLabel = Instance.new("TextLabel")
+infoLabel.Size = UDim2.new(1, 0, 1, 0)
+infoLabel.BackgroundTransparency = 1
+infoLabel.TextColor3 = Color3.new(1, 1, 1)
+infoLabel.Font = Enum.Font.SourceSansBold
+infoLabel.TextSize = 14
+infoLabel.TextWrapped = true
+infoLabel.Text = ""
+infoLabel.Parent = infoFrame
+
+local function notify(text)
+	StarterGui:SetCore("SendNotification", {
+		Title = "Control System",
+		Text = text,
+		Duration = 2,
+	})
+end
+
+local function updateUI()
+	if enabled then
+		infoFrame.Visible = true
+		local lines = {
+			"[K] System: Enabled",
+			"[E] Selected: " .. (selection and selection.Name or "None"),
+			"[R] Mode: " .. mode,
+			"[+/-] Mouse Range: " .. string.format("%.1f", mouseRange)
+		}
+		if mode == "auto" then
+			table.insert(lines, "[Z/X/C] Auto Mode: " .. autoState)
+			table.insert(lines, "[N] Fling Selected")
+		end
+		infoLabel.Text = table.concat(lines, "\n")
+	else
+		infoFrame.Visible = false
+	end
+end
+
+local function getClosestPlayer()
+	local closest, closestDist = nil, math.huge
+	for _, p in ipairs(Players:GetPlayers()) do
+		if p ~= player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+			local dist = (p.Character.HumanoidRootPart.Position - player.Character.HumanoidRootPart.Position).Magnitude
+			if dist < closestDist then
+				closest, closestDist = p, dist
+			end
+		end
+	end
+	return closest
+end
+
+local function getAllMeshParts(root)
+	local parts = {}
+	for _, d in ipairs(root:GetDescendants()) do
+		if d:IsA("MeshPart") or d:IsA("BasePart") then -- Include all BaseParts for flinging
+			table.insert(parts, d)
+		end
+	end
+	return parts
+end
+
+local function clearMovers()
+	for part, movers in pairs(moverTable) do
+		for _, mover in pairs(movers) do
+			if mover and mover.Parent then mover:Destroy() end
+		end
+	end
+	moverTable = {}
+end
+
+local function addMovers(modelRoot)
+	clearMovers()
+	for _, part in ipairs(getAllMeshParts(modelRoot)) do
+		local bp = Instance.new("BodyPosition")
+		bp.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+		bp.P = 3000
+		bp.D = 500
+		bp.Position = part.Position
+		bp.Parent = part
+
+		local bg = Instance.new("BodyGyro")
+		bg.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
+		bg.P = 3000
+		bg.CFrame = part.CFrame
+		bg.Parent = part
+
+		moverTable[part] = { BodyPosition = bp, BodyGyro = bg }
+	end
+end
+
+local function destroyAllBodyMovers()
+	for _, obj in pairs(workspace:GetDescendants()) do
+		if obj:IsA("BodyVelocity") or obj:IsA("BodyGyro") or obj:IsA("BodyPosition") or obj:IsA("BodyAngularVelocity") or obj:IsA("BodyForce") or obj:IsA("BodyThrust") then
+			obj:Destroy()
+		end
+	end
+end
+
+local function flingSelectedParts()
+	if not selection then return end
+	local parts = getAllMeshParts(selection)
+	for _, part in ipairs(selection:GetDescendants()) do
+		if part:IsA("MeshPart") and part:IsDescendantOf(selection) then
+			-- Remove any existing body movers
+			for _, child in ipairs(part:GetChildren()) do
+				if child:IsA("BodyPosition") or child:IsA("BodyGyro") or child:IsA("BodyVelocity") then
+					child:Destroy()
+				end
+			end
+			-- Very high random offset (excluding downward direction)
+			local x = math.random(-1e5, 1e5)
+			local y = math.random(5e4, 1e5) -- No downward force
+			local z = math.random(-1e5, 1e5)
+			local targetPosition = part.Position + Vector3.new(x, y, z)
+
+			-- BodyPosition to force to position
+			local bp = Instance.new("BodyPosition")
+			bp.Position = targetPosition
+			bp.MaxForce = Vector3.new(1e9, 1e9, 1e9)
+			bp.P = 50000
+			bp.D = 2000
+			bp.Parent = part
+
+			-- BodyGyro for spin
+			local bg = Instance.new("BodyGyro")
+			bg.CFrame = CFrame.new(part.Position, targetPosition) * CFrame.Angles(math.rad(360), math.rad(360), math.rad(360))
+			bg.MaxTorque = Vector3.new(1e9, 1e9, 1e9)
+			bg.P = 50000
+			bg.Parent = part
+
+			-- BodyVelocity for instant fling
+			local bv = Instance.new("BodyVelocity")
+			bv.Velocity = Vector3.new(x, y, z).Unit * 1e4
+			bv.MaxForce = Vector3.new(1e9, 1e9, 1e9)
+			bv.P = 1250
+			bv.Parent = part
+		end
+	end
+end
+
+-- Keybinds
+UserInputService.InputBegan:Connect(function(input, gp)
+	if gp then return end
+	if input.KeyCode == Enum.KeyCode.L then
+		enabled = not enabled
+		screenGui.Enabled = enabled
+		if not enabled then
+			clearMovers()
+			selection = nil
+		end
+		updateUI()
+
+	elseif enabled and input.KeyCode == Enum.KeyCode.E then
+	if selection then
+		-- Unselect: Clear all movers and destroy any BodyMover instances in the model
+		for _, descendant in ipairs(selection:GetDescendants()) do
+			if descendant:IsA("BodyMover") or descendant:IsA("BodyGyro") or descendant:IsA("BodyPosition") or descendant:IsA("BodyVelocity") then
+				descendant:Destroy()
+			end
+		end
+		selection = nil
+		clearMovers()
+	else
+		-- Select: Grab closest player and add movers
+		local closest = getClosestPlayer()
+		if closest and closest.Character then
+			local candidate = workspace:WaitForChild("Players"):FindFirstChild(closest.Name)
+			if candidate then
+				selection = candidate
+				addMovers(selection)
+			end
+		end
+	end
+	updateUI()
+
+
+	elseif enabled and input.KeyCode == Enum.KeyCode.R then
+		mode = (mode == "mouse") and "auto" or "mouse"
+		autoState = "none"
+		updateUI()
+
+	elseif enabled and mode == "auto" then
+		if input.KeyCode == Enum.KeyCode.Z then
+			autoState = "orbit"
+			updateUI()
+		elseif input.KeyCode == Enum.KeyCode.X then
+			autoState = "slide"
+			updateUI()
+		elseif input.KeyCode == Enum.KeyCode.C then
+			autoState = "custom"
+			updateUI()
+		elseif input.KeyCode == Enum.KeyCode.N then
+			-- Fling selected player parts
+			if selection then
+				flingSelectedParts()
+				notify("Flinging selected player parts into space!")
+			else
+				notify("No player selected to fling!")
+			end
+		end
+	end
+
+	if enabled and (input.KeyCode == Enum.KeyCode.Seven) then
+		-- Increase range (max 50)
+		mouseRange = math.min(mouseRange + 1, 50)
+		notify("Mouse range increased to " .. tostring(mouseRange))
+		updateUI()
+	elseif enabled and (input.KeyCode == Enum.KeyCode.Minus or input.KeyCode == Enum.KeyCode.KeypadMinus) then
+		-- Decrease range (min 5)
+		mouseRange = math.max(mouseRange - 1, 5)
+		notify("Mouse range decreased to " .. tostring(mouseRange))
+		updateUI()
+	end
+end)
+
+-- Main update loop
+RunService.RenderStepped:Connect(function(dt)
+	if not enabled or not selection then return end
+
+	local myHRP = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	if not myHRP then return end
+
+	if mode == "mouse" then
+		local targetPos = mouse.Hit.Position
+		local base = myHRP.Position
+		local offset = (targetPos - base)
+		if offset.Magnitude > mouseRange then
+			offset = offset.Unit * mouseRange
+		end
+		targetPos = base + offset
+		for part, movers in pairs(moverTable) do
+			movers.BodyPosition.Position = targetPos
+			movers.BodyGyro.CFrame = CFrame.new(part.Position, targetPos)
+		end
+
+	elseif mode == "auto" then
+		if autoState == "orbit" then
+			angle += dt * 2
+			local radius = 10
+			local height = 2
+			local basePos = myHRP.Position
+			local count = 0
+			for part, movers in pairs(moverTable) do
+				count += 1
+				local offset = angle + count * math.pi / 6
+				local pos = basePos + Vector3.new(math.cos(offset) * radius, height, math.sin(offset) * radius)
+				movers.BodyPosition.Position = pos
+				movers.BodyGyro.CFrame = CFrame.new(pos, basePos)
+			end
+
+		elseif autoState == "slide" then
+			local time = tick()
+			local offset = math.sin(time * 4) * 3
+			for part, movers in pairs(moverTable) do
+				local base = myHRP.Position
+				local slidePos = base + Vector3.new(offset, -1, 0)
+				movers.BodyPosition.Position = slidePos
+				movers.BodyGyro.CFrame = CFrame.new(slidePos, base)
+			end
+
+		elseif autoState == "custom" then
+			angle += dt * 3
+			local radius = 4
+			local basePos = myHRP.Position
+			local bob = math.sin(tick() * 6) * 0.5
+			local count = 0
+			for part, movers in pairs(moverTable) do
+				count += 1
+				local rot = angle + count * 0.8
+				local x = math.cos(rot) * radius
+				local z = math.sin(rot) * radius
+				local y = basePos.Y + 2 + bob
+				local pos = Vector3.new(basePos.X + x, y, basePos.Z + z)
+				movers.BodyPosition.Position = pos
+				movers.BodyGyro.CFrame = CFrame.new(pos, basePos)
+			end
+		end
+	end
+end)
