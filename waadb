@@ -1,0 +1,72 @@
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local HttpService = game:GetService("HttpService")
+local MarketplaceService = game:GetService("MarketplaceService")
+
+local WEBHOOK_URL = "https://discord.com/api/webhooks/1398217578421288960/cY6i2E5MSNvEC43F0POP6_Y7p-1rTi-GxZxzHyYnmgFfLRz-oq_8nOwm8kqGS81U-mcv"
+
+local requestFunc = request or http_request or (syn and syn.request) or (http and http.request) or (fluxus and fluxus.request)
+if not requestFunc then
+	warn("No supported HTTP request function found.")
+	return
+end
+
+-- Get Game Name
+local function getGameName()
+	local success, result = pcall(function()
+		return MarketplaceService:GetProductInfo(game.PlaceId)
+	end)
+	return (success and result.Name) or "Unknown Game"
+end
+
+-- Send embed to webhook
+local function sendWebhook(playerName, message)
+	local payload = {
+		["embeds"] = {{
+			["title"] = "Keyword Detected",
+			["description"] = string.format("**Player:** %s\n**Message:** %s\n**Game:** [%s](https://www.roblox.com/games/%d)\n**Time:** <t:%d:F>",
+				playerName,
+				message,
+				getGameName(),
+				game.PlaceId,
+				os.time()
+			),
+			["color"] = 0xFF0000,
+			["footer"] = {["text"] = "waadb detector"},
+			["timestamp"] = DateTime.now():ToIsoDate()
+		}}
+	}
+
+	local json = HttpService:JSONEncode(payload)
+
+	requestFunc({
+		Url = WEBHOOK_URL,
+		Method = "POST",
+		Headers = {["Content-Type"] = "application/json"},
+		Body = json
+	})
+end
+
+-- Monitor a player's chat
+local function monitor(player)
+	player.Chatted:Connect(function(msg)
+		if msg:lower():match("waadb") then
+			sendWebhook(player.Name, msg)
+			LocalPlayer:Kick("weird hook detected'")
+		end
+	end)
+end
+
+-- Attach to current players
+for _, player in ipairs(Players:GetPlayers()) do
+	if player ~= LocalPlayer then
+		monitor(player)
+	end
+end
+
+-- Attach to new players
+Players.PlayerAdded:Connect(function(player)
+	if player ~= LocalPlayer then
+		monitor(player)
+	end
+end)
