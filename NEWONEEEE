@@ -4,8 +4,7 @@ if placeId == 102829972707814 then
     loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/MAIN"))()
     
 elseif placeId == 71123788828242 then
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/mousemovertpua"))()
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/autoarmor"))()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/autstomp"))()
 else
     kick("wadadaddddadad on discord, game not supported" .. placeId)
 end
