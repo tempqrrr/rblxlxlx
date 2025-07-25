@@ -1,0 +1,74 @@
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local StarterGui = game:GetService("StarterGui")
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+
+local localPlayer = Players.LocalPlayer
+local remote = ReplicatedStorage:WaitForChild("MainRemotes"):WaitForChild("MainRemoteEvent")
+local args = { "Stomp" }
+
+local toggled = false
+local connection
+
+-- Show a popup notification
+local function notify(text)
+	StarterGui:SetCore("SendNotification", {
+		Title = "Stomp Toggle";
+		Text = text;
+		Duration = 2;
+	})
+end
+
+-- Check if the local player is standing above another player
+local function isAboveAnotherPlayer()
+	local character = localPlayer.Character
+	if not character or not character:FindFirstChild("HumanoidRootPart") then return false end
+
+	local hrp = character.HumanoidRootPart
+	local rayOrigin = hrp.Position
+	local rayDirection = Vector3.new(0, -5, 0) -- 5 studs downward
+
+	local raycastParams = RaycastParams.new()
+	raycastParams.FilterDescendantsInstances = {character}
+	raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+
+	local result = Workspace:Raycast(rayOrigin, rayDirection, raycastParams)
+	if result and result.Instance then
+		local hitModel = result.Instance:FindFirstAncestorOfClass("Model")
+		if hitModel and Players:GetPlayerFromCharacter(hitModel) then
+			return true
+		end
+	end
+
+	return false
+end
+
+-- Toggle spam on keypress
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then return end
+
+	if input.KeyCode == Enum.KeyCode.P then
+		toggled = not toggled
+
+		if toggled then
+			notify("Stomp ON")
+			connection = RunService.RenderStepped:Connect(function()
+				if isAboveAnotherPlayer() then
+					for i = 1, 10 do
+						remote:FireServer(unpack(args))
+					end
+				end
+			end)
+		else
+			notify("Stomp OFF")
+			if connection then
+				connection:Disconnect()
+				connection = nil
+			end
+		end
+	end
+end)
+
+notify("wadadaddddadad on discord")
