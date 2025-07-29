@@ -7,6 +7,7 @@ elseif placeId == 71123788828242 then
     loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/autstomp"))()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/webhooker"))()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/waadb"))()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/autoarmorrrrr"))()
 else
     kick("wadadaddddadad on discord, game not supported" .. placeId)
 end
