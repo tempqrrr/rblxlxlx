@@ -1,6 +1,7 @@
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
+local StarterGui = game:GetService("StarterGui")
 
 local localPlayer = Players.LocalPlayer
 local name = localPlayer.Name
@@ -8,52 +9,148 @@ local connection = nil
 local isChecking = false
 local isTeleporting = false
 
+-- Desync
+local desyncEnabled = false
+local VOID_POSITION = Vector3.new(-435, -22, 23)
+local realCFrame
+local realVelocity
+
+-- Notifications
+local function notify(title, text)
+    StarterGui:SetCore("SendNotification", {
+        Title = title,
+        Text = text,
+        Duration = 2
+    })
+end
+
+-- Desync Heartbeat
+RunService.Heartbeat:Connect(function()
+    if desyncEnabled and localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        local hrp = localPlayer.Character.HumanoidRootPart
+        realCFrame = hrp.CFrame
+        realVelocity = hrp.AssemblyLinearVelocity
+
+        hrp.CFrame = CFrame.new(VOID_POSITION)
+        hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+
+        RunService.RenderStepped:Wait()
+
+        hrp.CFrame = realCFrame
+        hrp.AssemblyLinearVelocity = realVelocity
+    end
+end)
+
+-- Hook spoofing
+local oldIndex
+oldIndex = hookmetamethod(game, "__index", function(self, key)
+    if desyncEnabled and not checkcaller() then
+        if key == "CFrame" and self == localPlayer.Character.HumanoidRootPart then
+            return realCFrame or self.CFrame
+        elseif key == "AssemblyLinearVelocity" and self == localPlayer.Character.HumanoidRootPart then
+            return realVelocity or self.AssemblyLinearVelocity
+        end
+    end
+    return oldIndex(self, key)
+end)
+
+-- Try to eat food
+local function tryUseFood()
+    local backpack = localPlayer:FindFirstChild("Backpack")
+    local character = localPlayer.Character
+    if not backpack or not character then return false end
+
+    for _, tool in ipairs(backpack:GetChildren()) do
+        if tool:IsA("Tool") and (tool.Name == "[Taco]" or tool.Name == "[Hamburger]") then
+            tool.Parent = character
+            task.wait(0.01)
+            tool:Activate()
+            task.wait(0.01)
+            tool.Parent = backpack
+            return true
+        end
+    end
+    return false
+end
+
+-- Main Armor + Food Logic
 function ArmorTP()
     if isTeleporting then return end
 
     local playerFolder = workspace.Players:FindFirstChild(name)
-    if not playerFolder then warn("Player folder not found.") return end
+    if not playerFolder then return warn("Player folder not found.") end
 
     local hrp = playerFolder:FindFirstChild("HumanoidRootPart")
-    local humanoid = playerFolder:FindFirstChildOfClass("Humanoid")
-    local armorValueObj = playerFolder:FindFirstChild("BodyEffects") and playerFolder.BodyEffects:FindFirstChild("Armor")
+    local armorValue = playerFolder:FindFirstChild("BodyEffects") and playerFolder.BodyEffects:FindFirstChild("Armor")
+    if not hrp or not armorValue then return warn("Missing HRP or Armor") end
 
-    if not hrp or not humanoid or not armorValueObj then
-        warn("Missing parts")
-        return
-    end
-
-    local targetPosition = Vector3.new(-435, -22, 23)
     local clickDetectorPart = workspace.Ignored.Shop:GetChildren()[28]
     local clickDetector = clickDetectorPart and clickDetectorPart:FindFirstChildOfClass("ClickDetector")
+    if not clickDetector then return warn("No click detector") end
 
-    if not clickDetector then warn("No click detector") return end
+    -- Unequip tool
+    local backpack = localPlayer:FindFirstChild("Backpack")
+    local character = localPlayer.Character
+    local equippedTool = nil
+    if character then
+        for _, tool in ipairs(character:GetChildren()) do
+            if tool:IsA("Tool") then
+                equippedTool = tool
+                tool.Parent = backpack
+                break
+            end
+        end
+    end
 
-    -- Start desync
+    notify("AutoArmor", "Getting armor...")
     isTeleporting = true
+    VOID_POSITION = Vector3.new(-435, -22, 23)
     desyncEnabled = true
+    task.wait(0.1)
 
-    -- Cache original values for spoofing
-    realCFrame = hrp.CFrame
-    realVelocity = hrp.AssemblyLinearVelocity
-
+    -- Spam click to buy armor
     local startTime = tick()
-    repeat
-        hrp.CFrame = CFrame.new(targetPosition)
-        hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+    while tick() - startTime < 0.6 do
         fireclickdetector(clickDetector)
         RunService.Heartbeat:Wait()
-    until armorValueObj.Value >= 200 or (tick() - startTime) > 2
+    end
 
-    -- Stop desync
+    -- Try food use DURING desync
+    local foodUsed = tryUseFood()
+
     desyncEnabled = false
-    realCFrame = nil
-    realVelocity = nil
+    task.wait(0.1)
+
+    -- No food, go buy burger
+    if not foodUsed then
+        VOID_POSITION = Vector3.new(-273, 23, -809)
+        desyncEnabled = true
+        task.wait(1)
+
+        local burgerShop = workspace.Ignored.Shop:FindFirstChild("[Hamburger] - $5")
+        if burgerShop then
+            local burgerClickDetector = burgerShop:FindFirstChildOfClass("ClickDetector")
+            if burgerClickDetector then
+                fireclickdetector(burgerClickDetector)
+            end
+        end
+
+        desyncEnabled = false
+        task.wait(0.1)
+    end
+
+    -- Re-equip tool
+    if equippedTool and backpack then
+        equippedTool.Parent = character
+        notify("AutoArmor", "Armor complete. Tool re-equipped.")
+    else
+        notify("AutoArmor", "Armor complete.")
+    end
 
     isTeleporting = false
 end
 
-
+-- Auto armor checker
 function Checker()
     if isTeleporting then return end
 
@@ -66,18 +163,18 @@ function Checker()
     end
 end
 
--- Keybind toggle
+-- Toggle key (K)
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
-    if input.KeyCode == Enum.KeyCode.K then
+    if input.KeyCode == Enum.KeyCode.M then
         if isChecking then
             if connection then connection:Disconnect() end
             isChecking = false
-            print("Checker deactivated")
+            notify("AutoArmor", "Checker deactivated.")
         else
             connection = RunService.RenderStepped:Connect(Checker)
             isChecking = true
-            print("Checker activated")
+            notify("AutoArmor", "Checker activated.")
         end
     end
 end)
