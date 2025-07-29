@@ -8,6 +8,45 @@ local connection = nil
 local isChecking = false
 local isTeleporting = false
 
+-- Reuse desync variables
+local desyncEnabled = false
+local VOID_POSITION = Vector3.new(-435, -22, 23)
+
+local realCFrame
+local realVelocity
+
+-- Heartbeat-based desync logic
+RunService.Heartbeat:Connect(function()
+    if desyncEnabled and localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        local hrp = localPlayer.Character.HumanoidRootPart
+
+        realCFrame = hrp.CFrame
+        realVelocity = hrp.AssemblyLinearVelocity
+
+        hrp.CFrame = CFrame.new(VOID_POSITION)
+        hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+
+        RunService.RenderStepped:Wait()
+
+        hrp.CFrame = realCFrame
+        hrp.AssemblyLinearVelocity = realVelocity
+    end
+end)
+
+-- Hook to spoof readings
+local oldIndex
+oldIndex = hookmetamethod(game, "__index", function(self, key)
+    if desyncEnabled and not checkcaller() then
+        if key == "CFrame" and self == localPlayer.Character.HumanoidRootPart then
+            return realCFrame or self.CFrame
+        elseif key == "AssemblyLinearVelocity" and self == localPlayer.Character.HumanoidRootPart then
+            return realVelocity or self.AssemblyLinearVelocity
+        end
+    end
+    return oldIndex(self, key)
+end)
+
+-- Actual auto-armor TP logic
 function ArmorTP()
     if isTeleporting then return end
 
@@ -15,38 +54,30 @@ function ArmorTP()
     if not playerFolder then warn("Player folder not found.") return end
 
     local hrp = playerFolder:FindFirstChild("HumanoidRootPart")
-    local humanoid = playerFolder:FindFirstChildOfClass("Humanoid")
     local armorValueObj = playerFolder:FindFirstChild("BodyEffects") and playerFolder.BodyEffects:FindFirstChild("Armor")
 
-    if not hrp or not humanoid or not armorValueObj then
-        warn("Missing parts")
+    if not hrp or not armorValueObj then
+        warn("Missing HRP or Armor")
         return
     end
 
-    local originalCFrame = hrp.CFrame
-    local targetPosition = Vector3.new(-435, -22, 23)
     local clickDetectorPart = workspace.Ignored.Shop:GetChildren()[28]
     local clickDetector = clickDetectorPart and clickDetectorPart:FindFirstChildOfClass("ClickDetector")
-
     if not clickDetector then warn("No click detector") return end
 
     isTeleporting = true
 
-    -- Freeze movement
-    humanoid.PlatformStand = true
-    humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+    -- Begin desync
+    desyncEnabled = true
 
     local startTime = tick()
     repeat
-        hrp.CFrame = CFrame.new(targetPosition)
         fireclickdetector(clickDetector)
         RunService.Heartbeat:Wait()
     until armorValueObj.Value >= 200 or (tick() - startTime) > 2
 
-    -- Return to original position
-    hrp.CFrame = originalCFrame
-    humanoid.PlatformStand = false
-    humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
+    -- End desync
+    desyncEnabled = false
 
     isTeleporting = false
 end
