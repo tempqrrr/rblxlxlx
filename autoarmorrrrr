@@ -80,15 +80,24 @@ local function ArmorTP()
     isTeleporting = true
 
     local playerFolder = workspace.Players:FindFirstChild(name)
-    if not playerFolder then return warn("Player folder not found.") end
+    if not playerFolder then
+        warn("Player folder not found.")
+        return
+    end
 
     local hrp = playerFolder:FindFirstChild("HumanoidRootPart")
     local armor = playerFolder:FindFirstChild("BodyEffects") and playerFolder.BodyEffects:FindFirstChild("Armor")
-    if not hrp or not armor then return warn("Missing HRP or Armor") end
+    if not hrp or not armor then
+        warn("Missing HRP or Armor")
+        return
+    end
 
     local clickPart = workspace.Ignored.Shop:GetChildren()[28]
     local clickDetector = clickPart and clickPart:FindFirstChildOfClass("ClickDetector")
-    if not clickDetector then return warn("No click detector found") end
+    if not clickDetector then
+        warn("No click detector found")
+        return
+    end
 
     -- Save equipped tool
     local backpack = localPlayer:FindFirstChild("Backpack")
@@ -109,9 +118,9 @@ local function ArmorTP()
     desyncEnabled = true
     task.wait(0.1)
 
-    -- Spam click armor for 0.6s
+    -- Spam click until armor is applied or timeout
     local startTime = tick()
-    while tick() - startTime < 0.6 do
+    while armor.Value <= 199 and tick() - startTime < 3 do
         fireclickdetector(clickDetector)
         RunService.Heartbeat:Wait()
     end
@@ -120,20 +129,29 @@ local function ArmorTP()
     local usedBurger = tryUseHamburger()
 
     -- End armor desync
-    desyncEnabled = false
-    task.wait(0.1)
+    task.wait(0.01)
 
     -- If no burger was used, desync to buy one
     if not usedBurger then
+        local elapsed = tick() - startTime
+        if elapsed < 1.55 then
+            task.wait(1.55 - elapsed)
+        end
+
         VOID_POSITION = Vector3.new(-273, 23, -809) -- burger shop
         desyncEnabled = true
-        task.wait(1)
+        task.wait(0.1)
 
+        local backpack = localPlayer:FindFirstChild("Backpack")
         local shop = workspace.Ignored.Shop:FindFirstChild("[Hamburger] - $5")
+
         if shop then
             local detector = shop:FindFirstChildOfClass("ClickDetector")
             if detector then
-                fireclickdetector(detector)
+                while not backpack:FindFirstChild("[Hamburger]") do
+                    fireclickdetector(detector)
+                    RunService.Heartbeat:Wait()
+                end
             end
         end
 
@@ -148,6 +166,7 @@ local function ArmorTP()
 
     notify("AutoArmor", "Done.")
     isTeleporting = false
+    desyncEnabled = false
 end
 
 -- Auto check loop
@@ -170,6 +189,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         if isChecking then
             if connection then connection:Disconnect() end
             isChecking = false
+            desyncEnabled = false
             notify("AutoArmor", "Checker deactivated.")
         else
             connection = RunService.RenderStepped:Connect(Checker)
