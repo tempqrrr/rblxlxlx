@@ -2,12 +2,12 @@ local placeId = game.PlaceId
 
 if placeId == 102829972707814 then
     loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/MAIN"))()
-    
+
 elseif placeId == 71123788828242 then
     loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/autstomp"))()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/webhooker"))()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/waadb"))()   
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/Pixeluted/adoniscries/main/Source.lua",true))()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Pixeluted/adoniscries/main/Source.lua", true))()
 
     -- GUI Setup
     local ScreenGui = Instance.new("ScreenGui")
@@ -52,7 +52,7 @@ elseif placeId == 71123788828242 then
     makeButton("AUTO ARMOR 2", function()
         loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/autoarmorrrrr"))()
     end)
-end
+
 else
-    kick("wadadaddddadad on discord, game not supported" .. placeId)
+    game.Players.LocalPlayer:Kick("wadadaddddadad on discord, game not supported: " .. placeId)
 end
