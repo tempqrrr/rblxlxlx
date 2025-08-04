@@ -3,7 +3,7 @@ local placeId = game.PlaceId
 if placeId == 102829972707814 then
     loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/MAIN"))()
 
-elseif placeId == 120525124699164 then
+elseif placeId == 7969000100 then
     loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/autstomp"))()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/webhooker"))()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/waadb"))()   
