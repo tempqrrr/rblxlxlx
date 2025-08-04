@@ -4,7 +4,6 @@ if placeId == 102829972707814 then
     loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/MAIN"))()
 
 elseif placeId == 71123788828242 then
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/autstomp"))()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/webhooker"))()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/waadb"))()   
     loadstring(game:HttpGet("https://raw.githubusercontent.com/Pixeluted/adoniscries/main/Source.lua", true))()
@@ -16,8 +15,8 @@ elseif placeId == 71123788828242 then
     ScreenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
 
     local Frame = Instance.new("Frame")
-    Frame.Size = UDim2.new(0, 200, 0, 120)
-    Frame.Position = UDim2.new(0.5, -100, 0.5, -60)
+    Frame.Size = UDim2.new(0, 200, 0, 150) -- increased height for X button
+    Frame.Position = UDim2.new(0.5, -100, 0.5, -75)
     Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
     Frame.BorderSizePixel = 0
     Frame.Parent = ScreenGui
@@ -28,6 +27,22 @@ elseif placeId == 71123788828242 then
     UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
     UIListLayout.VerticalAlignment = Enum.VerticalAlignment.Center
     UIListLayout.Parent = Frame
+
+    -- Close Button (X)
+    local CloseButton = Instance.new("TextButton")
+    CloseButton.Size = UDim2.new(0, 25, 0, 25)
+    CloseButton.Position = UDim2.new(1, -30, 0, 5)
+    CloseButton.BackgroundColor3 = Color3.fromRGB(80, 0, 0)
+    CloseButton.TextColor3 = Color3.new(1, 1, 1)
+    CloseButton.Font = Enum.Font.SourceSansBold
+    CloseButton.TextSize = 22
+    CloseButton.Text = "X"
+    CloseButton.AutoButtonColor = true
+    CloseButton.Parent = Frame
+
+    CloseButton.MouseButton1Click:Connect(function()
+        ScreenGui:Destroy()
+    end)
 
     local function makeButton(text, callback)
         local button = Instance.new("TextButton")
@@ -53,6 +68,11 @@ elseif placeId == 71123788828242 then
         loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/autoarmorrrrr"))()
     end)
 
+    makeButton("AUTO ARMOR 3", function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/newarmorrr"))()
+    end)
+
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/autstomp"))()
 else
     game.Players.LocalPlayer:Kick("wadadaddddadad on discord, game not supported: " .. placeId)
 end
