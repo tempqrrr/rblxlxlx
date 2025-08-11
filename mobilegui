@@ -581,6 +581,43 @@ Window:CreateHomeTab({
 	Icon = 1
 })
 
+local function StompToggle()
+    if toggled then
+        -- Turn off
+        toggled = false
+        notify("Stomp OFF", 2)
+        if connection then
+            connection:Disconnect()
+            connection = nil
+        end
+    else
+        -- Turn on
+        toggled = true
+        notify("Stomp ON", 2)
+        connection = RunService.RenderStepped:Connect(function()
+            if isAboveAnotherPlayer() then
+                for i = 1, stompCount do
+                    remote:FireServer(unpack(args))
+                end
+            end
+        end)
+    end
+end
+
+local function AutoArmorOn()
+	if isChecking then return end -- Already on
+
+	local playerFolder = workspace.Players:FindFirstChild(name)
+	local armor = playerFolder and playerFolder:FindFirstChild("BodyEffects") and playerFolder.BodyEffects:FindFirstChild("Armor")
+	if armor and armor.Value < 200 then
+		ArmorTP()
+	end
+	armorConnection = startArmorMonitor()
+	isChecking = true
+	notifyToggle(true)
+end
+
+
 local Tab = Window:CreateTab({
 	Name = "Auto Armor",
 	Icon = "shield", -- icon for armor (choose any Luna icon name you like)
@@ -593,24 +630,7 @@ local AutoArmorToggle = Tab:CreateToggle({
 	Description = "Toggle automatic armor buying",
 	CurrentValue = false,
 	Callback = function(state)
-		if state then
-			-- Enable auto armor monitoring
-			if isChecking then return end -- already enabled
-			local playerFolder = workspace.Players:FindFirstChild(name)
-			local armor = playerFolder and playerFolder:FindFirstChild("BodyEffects") and playerFolder.BodyEffects:FindFirstChild("Armor")
-			if armor and armor.Value < 200 then
-				ArmorTP()
-			end
-			armorConnection = startArmorMonitor()
-			isChecking = true
-			notifyToggle(true)
-		else
-			-- Disable auto armor monitoring
-			if armorConnection then armorConnection:Disconnect() end
-			isChecking = false
-			clearStatus()
-			notifyToggle(false)
-		end
+	  AutoArmorOn()
 	end
 }, "Toggle")
 
@@ -619,22 +639,8 @@ local StompToggle = Tab:CreateToggle({
 	Description = "Toggle automatic stomping",
 	CurrentValue = false,
 	Callback = function(state)
-		toggled = state
-		if toggled then
-			notify("Stomp ON")
-			connection = RunService.RenderStepped:Connect(function()
-				if isAboveAnotherPlayer() then
-					for i = 1, stompCount do
-						remote:FireServer(unpack(args))
-					end
-				end
-			end)
-		else
-			notify("Stomp OFF")
-			if connection then
-				connection:Disconnect()
-				connection = nil
-			end
-		end
+	  StompToggle()
 	end
 }, "Toggle")
+
+
