@@ -1,0 +1,640 @@
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local StarterGui = game:GetService("StarterGui")
+
+local localPlayer = Players.LocalPlayer
+local name = localPlayer.Name
+
+local isChecking = false
+local isTeleporting = false
+local armorConnection = nil
+
+-- Desync
+local desyncEnabled = false
+local VOID_POSITION = Vector3.new(-435, -22, 23)
+local realCFrame, realVelocity
+
+-- Status Text and Font Control
+local currentStatus = nil
+local textLabel = nil
+local shadowLabel = nil
+local textTask = nil
+
+-- Fonts to cycle through
+local Fonts = {
+	Enum.Font.Arial,
+	Enum.Font.ArialBold,
+	Enum.Font.SourceSans,
+	Enum.Font.SourceSansBold,
+	Enum.Font.SourceSansItalic,
+	Enum.Font.Gotham,
+	Enum.Font.GothamBold,
+	Enum.Font.GothamBlack,
+	Enum.Font.PermanentMarker,
+	Enum.Font.Highway,
+	Enum.Font.Fantasy,
+	Enum.Font.Cartoon,
+}
+
+-- Load saved font index from a saved value in Player
+local fontIndexValue = localPlayer:FindFirstChild("ArmorFontIndex")
+if not fontIndexValue then
+	fontIndexValue = Instance.new("IntValue")
+	fontIndexValue.Name = "ArmorFontIndex"
+	fontIndexValue.Value = 1
+	fontIndexValue.Parent = localPlayer
+end
+local currentFontIndex = fontIndexValue.Value
+
+local function getCurrentFont()
+	return Fonts[currentFontIndex]
+end
+
+-- Update the saved font index (persist across death)
+local function saveFontIndex(index)
+	fontIndexValue.Value = index
+end
+
+-- Update the armor status text labels
+local function updateStatusText(text)
+	if not textLabel or not shadowLabel then return end
+	textLabel.Text = text
+	shadowLabel.Text = text
+end
+
+-- Update status text with animated dots, using the current font
+local function setStatus(textPrefix)
+	if textTask then
+		textTask:Disconnect()
+	end
+	updateStatusText(textPrefix)
+	local dots = { ".", "..", "..." }
+	local index = 1
+
+	textTask = RunService.RenderStepped:Connect(function()
+		if not textLabel then return end
+		local font = getCurrentFont()
+		textLabel.Font = font
+		shadowLabel.Font = font
+		updateStatusText(textPrefix .. dots[index])
+		index = (index % #dots) + 1
+	end)
+end
+
+local function clearStatus()
+	if textTask then
+		textTask:Disconnect()
+		textTask = nil
+	end
+	updateStatusText("")
+end
+
+-- Create Armor BillboardGui (under player)
+local function createArmorText()
+	local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
+	local rootPart = character:WaitForChild("HumanoidRootPart")
+
+	if character:FindFirstChild("ArmorBillboard") then
+		character.ArmorBillboard:Destroy()
+	end
+
+	local billboardGui = Instance.new("BillboardGui")
+	billboardGui.Name = "ArmorBillboard"
+	billboardGui.Adornee = rootPart
+	billboardGui.Size = UDim2.new(0, 200, 0, 50)
+	billboardGui.StudsOffset = Vector3.new(0, -3.5, 0)
+	billboardGui.AlwaysOnTop = true
+	billboardGui.MaxDistance = 50
+	billboardGui.Parent = character
+
+	textLabel = Instance.new("TextLabel")
+	textLabel.Size = UDim2.new(1, 0, 1, 0)
+	textLabel.BackgroundTransparency = 1
+	textLabel.Text = ""
+	textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+	textLabel.TextStrokeTransparency = 0
+	textLabel.Font = getCurrentFont()
+	textLabel.TextScaled = false
+	textLabel.TextSize = 30
+	textLabel.Parent = billboardGui
+
+	local stroke = Instance.new("UIStroke")
+	stroke.Thickness = 2
+	stroke.Color = Color3.fromRGB(0, 0, 0)
+	stroke.Parent = textLabel
+
+	shadowLabel = Instance.new("TextLabel")
+	shadowLabel.Size = UDim2.new(1, 0, 1, 0)
+	shadowLabel.Position = UDim2.new(0, 2, 0, 2)
+	shadowLabel.BackgroundTransparency = 1
+	shadowLabel.Text = ""
+	shadowLabel.TextColor3 = Color3.fromRGB(0, 0, 0)
+	shadowLabel.TextTransparency = 0.5
+	shadowLabel.Font = textLabel.Font
+	shadowLabel.TextScaled = false
+	shadowLabel.TextSize = 30
+	shadowLabel.ZIndex = textLabel.ZIndex - 1
+	shadowLabel.Parent = billboardGui
+end
+
+localPlayer.CharacterAdded:Connect(function()
+	task.wait(1)
+	createArmorText()
+end)
+
+if localPlayer.Character then
+	createArmorText()
+end
+
+-- Desync handling
+RunService.Heartbeat:Connect(function()
+	if desyncEnabled and localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
+		local hrp = localPlayer.Character.HumanoidRootPart
+		realCFrame = hrp.CFrame
+		realVelocity = hrp.AssemblyLinearVelocity
+
+		hrp.CFrame = CFrame.new(VOID_POSITION)
+		hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+
+		RunService.RenderStepped:Wait()
+
+		hrp.CFrame = realCFrame
+		hrp.AssemblyLinearVelocity = realVelocity
+	end
+end)
+
+local oldIndex
+oldIndex = hookmetamethod(game, "__index", function(self, key)
+	if desyncEnabled and not checkcaller() then
+		if key == "CFrame" and self == localPlayer.Character.HumanoidRootPart then
+			return realCFrame or self.CFrame
+		elseif key == "AssemblyLinearVelocity" and self == localPlayer.Character.HumanoidRootPart then
+			return realVelocity or self.AssemblyLinearVelocity
+		end
+	end
+	return oldIndex(self, key)
+end)
+
+-- Try to use a hamburger from backpack
+local function tryUseHamburger()
+	local backpack = localPlayer:FindFirstChild("Backpack")
+	local character = localPlayer.Character
+	if not backpack or not character then return false end
+
+	for _, tool in ipairs(backpack:GetChildren()) do
+		if tool:IsA("Tool") and tool.Name == "[Hamburger]" then
+			tool.Parent = character
+			task.wait(0.01)
+			tool:Activate()
+			task.wait(0.01)
+			tool.Parent = backpack
+			return true
+		end
+	end
+
+	return false
+end
+
+-- ArmorTP with 5-second max time limit
+local function ArmorTP()
+	if isTeleporting then return end
+	isTeleporting = true
+
+	local playerFolder = workspace.Players:FindFirstChild(name)
+	if not playerFolder then
+		isTeleporting = false
+		return
+	end
+
+	local hrp = playerFolder:FindFirstChild("HumanoidRootPart")
+	local armor = playerFolder:FindFirstChild("BodyEffects") and playerFolder.BodyEffects:FindFirstChild("Armor")
+	if not hrp or not armor then
+		isTeleporting = false
+		return
+	end
+
+	local clickPart = workspace.Ignored.Shop:GetChildren()[28]
+	local clickDetector = clickPart and clickPart:FindFirstChildOfClass("ClickDetector")
+	if not clickDetector then
+		isTeleporting = false
+		return
+	end
+
+	local backpack = localPlayer:FindFirstChild("Backpack")
+	local character = localPlayer.Character
+	local equippedTool = nil
+	if character then
+		for _, tool in ipairs(character:GetChildren()) do
+			if tool:IsA("Tool") then
+				equippedTool = tool
+				tool.Parent = backpack
+				break
+			end
+		end
+	end
+
+	setStatus("buying armor")
+	VOID_POSITION = Vector3.new(-435, -22, 23)
+	desyncEnabled = true
+	task.wait(0.1)
+
+	local startTime = tick()
+	while armor.Value <= 199 and tick() - startTime < 5 do
+		fireclickdetector(clickDetector)
+		RunService.Heartbeat:Wait()
+	end
+
+	local usedBurger = tryUseHamburger()
+	task.wait(0.01)
+
+	if not usedBurger then
+		local elapsed = tick() - startTime
+		if elapsed < 1.55 then
+			task.wait(1.55 - elapsed)
+		end
+
+		VOID_POSITION = Vector3.new(-273, 23, -809)
+		desyncEnabled = true
+		setStatus("buying food")
+		task.wait(0.1)
+
+		local shop = workspace.Ignored.Shop:FindFirstChild("[Hamburger] - $5")
+		if shop then
+			local detector = shop:FindFirstChildOfClass("ClickDetector")
+			if detector then
+				while not backpack:FindFirstChild("[Hamburger]") do
+					fireclickdetector(detector)
+					RunService.Heartbeat:Wait()
+				end
+			end
+		end
+		task.wait(0.1)
+	end
+
+	desyncEnabled = false
+
+	if equippedTool and backpack then
+		equippedTool.Parent = character
+	end
+
+	clearStatus()
+	isTeleporting = false
+end
+
+local function startArmorMonitor()
+	local playerFolder = workspace.Players:FindFirstChild(name)
+	if not playerFolder then return end
+
+	local armor = playerFolder:FindFirstChild("BodyEffects") and playerFolder.BodyEffects:FindFirstChild("Armor")
+	if not armor then return end
+
+	return armor:GetPropertyChangedSignal("Value"):Connect(function()
+		if armor.Value < 200 and not isTeleporting then
+			ArmorTP()
+		end
+	end)
+end
+
+-- GUI for Font Changer tool
+local fontGui = nil
+local fontNameLabel = nil
+local leftButton = nil
+local rightButton = nil
+local toolEquipped = false
+
+local function createFontChangerGui()
+	if fontGui then fontGui:Destroy() end
+
+	fontGui = Instance.new("ScreenGui")
+	fontGui.Name = "FontChangerGui"
+	fontGui.ResetOnSpawn = false
+	fontGui.Parent = localPlayer:WaitForChild("PlayerGui")
+
+	local frame = Instance.new("Frame")
+	frame.Size = UDim2.new(0, 300, 0, 40)
+	frame.Position = UDim2.new(0.5, -150, 0, 10)
+	frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+	frame.BorderSizePixel = 0
+	frame.Parent = fontGui
+	frame.AnchorPoint = Vector2.new(0.5, 0)
+
+	leftButton = Instance.new("TextButton")
+	leftButton.Size = UDim2.new(0, 40, 1, 0)
+	leftButton.Position = UDim2.new(0, 0, 0, 0)
+	leftButton.Text = "<"
+	leftButton.Font = Enum.Font.SourceSansBold
+	leftButton.TextSize = 28
+	leftButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+	leftButton.TextColor3 = Color3.new(1, 1, 1)
+	leftButton.BorderSizePixel = 0
+	leftButton.Parent = frame
+
+	fontNameLabel = Instance.new("TextLabel")
+	fontNameLabel.Size = UDim2.new(1, -80, 1, 0)
+	fontNameLabel.Position = UDim2.new(0, 40, 0, 0)
+	fontNameLabel.BackgroundTransparency = 1
+	fontNameLabel.TextColor3 = Color3.new(1, 1, 1)
+	fontNameLabel.Font = Enum.Font.SourceSansBold
+	fontNameLabel.TextSize = 20
+	fontNameLabel.Text = Fonts[currentFontIndex].Name
+	fontNameLabel.Parent = frame
+
+	rightButton = Instance.new("TextButton")
+	rightButton.Size = UDim2.new(0, 40, 1, 0)
+	rightButton.Position = UDim2.new(1, -40, 0, 0)
+	rightButton.Text = ">"
+	rightButton.Font = Enum.Font.SourceSansBold
+	rightButton.TextSize = 28
+	rightButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+	rightButton.TextColor3 = Color3.new(1, 1, 1)
+	rightButton.BorderSizePixel = 0
+	rightButton.Parent = frame
+
+	-- Button callbacks
+	leftButton.MouseButton1Click:Connect(function()
+		currentFontIndex = currentFontIndex - 1
+		if currentFontIndex < 1 then
+			currentFontIndex = #Fonts
+		end
+		saveFontIndex(currentFontIndex)
+		fontNameLabel.Text = Fonts[currentFontIndex].Name
+
+		if textLabel and shadowLabel then
+			textLabel.Font = getCurrentFont()
+			shadowLabel.Font = getCurrentFont()
+		end
+
+		if testBillboard and testShadow then
+			local newFont = getCurrentFont()
+			testBillboard.Font = newFont
+			testShadow.Font = newFont
+			-- Force refresh text to update font rendering immediately
+			local oldText = testBillboard.Text
+			testBillboard.Text = ""
+			testShadow.Text = ""
+			testBillboard.Text = oldText
+			testShadow.Text = oldText
+		end
+	end)
+
+	rightButton.MouseButton1Click:Connect(function()
+		currentFontIndex = currentFontIndex + 1
+		if currentFontIndex > #Fonts then
+			currentFontIndex = 1
+		end
+		saveFontIndex(currentFontIndex)
+		fontNameLabel.Text = Fonts[currentFontIndex].Name
+
+		if textLabel and shadowLabel then
+			textLabel.Font = getCurrentFont()
+			shadowLabel.Font = getCurrentFont()
+		end
+
+		if testBillboard and testShadow then
+			local newFont = getCurrentFont()
+			testBillboard.Font = newFont
+			testShadow.Font = newFont
+			-- Force refresh text
+			local oldText = testBillboard.Text
+			testBillboard.Text = ""
+			testShadow.Text = ""
+			testBillboard.Text = oldText
+			testShadow.Text = oldText
+		end
+	end)
+end
+
+-- Create test text Billboard under player while tool equipped
+local testBillboard, testShadow = nil, nil
+local function createTestBillboard()
+	local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
+	local rootPart = character:WaitForChild("HumanoidRootPart")
+
+	if character:FindFirstChild("TestFontBillboard") then
+		character.TestFontBillboard:Destroy()
+	end
+
+	local billboardGui = Instance.new("BillboardGui")
+	billboardGui.Name = "TestFontBillboard"
+	billboardGui.Adornee = rootPart
+	billboardGui.Size = UDim2.new(0, 250, 0, 50)
+	billboardGui.StudsOffset = Vector3.new(0, -5.5, 0)
+	billboardGui.AlwaysOnTop = true
+	billboardGui.MaxDistance = 50
+	billboardGui.Parent = character
+
+	testBillboard = Instance.new("TextLabel")
+	testBillboard.Size = UDim2.new(1, 0, 1, 0)
+	testBillboard.BackgroundTransparency = 1
+	testBillboard.TextColor3 = Color3.fromRGB(255, 255, 255)
+	testBillboard.TextStrokeTransparency = 0
+	testBillboard.Font = getCurrentFont()
+	testBillboard.TextScaled = false
+	testBillboard.TextSize = 26
+	testBillboard.Text = "buying armor... (test font)"
+	testBillboard.Parent = billboardGui
+
+	local stroke = Instance.new("UIStroke")
+	stroke.Thickness = 2
+	stroke.Color = Color3.fromRGB(0, 0, 0)
+	stroke.Parent = testBillboard
+
+	testShadow = Instance.new("TextLabel")
+	testShadow.Size = UDim2.new(1, 0, 1, 0)
+	testShadow.Position = UDim2.new(0, 2, 0, 2)
+	testShadow.BackgroundTransparency = 1
+	testShadow.TextColor3 = Color3.fromRGB(0, 0, 0)
+	testShadow.TextTransparency = 0.5
+	testShadow.Font = testBillboard.Font
+	testShadow.TextScaled = false
+	testShadow.TextSize = 26
+	testShadow.ZIndex = testBillboard.ZIndex - 1
+	testShadow.Text = testBillboard.Text
+	testShadow.Parent = billboardGui
+end
+
+local function removeTestBillboard()
+	local character = localPlayer.Character
+	if character and character:FindFirstChild("TestFontBillboard") then
+		character.TestFontBillboard:Destroy()
+	end
+	testBillboard = nil
+	testShadow = nil
+end
+
+-- Create and give ArmorChanger tool to player
+local function giveArmorChangerTool()
+	-- Check if tool exists already
+	if localPlayer.Backpack:FindFirstChild("ArmorChanger") or (localPlayer.Character and localPlayer.Character:FindFirstChild("ArmorChanger")) then
+		return
+	end
+
+	local tool = Instance.new("Tool")
+	tool.Name = "ArmorChanger"
+	tool.RequiresHandle = false
+	tool.CanBeDropped = false
+
+	-- Equipped connection
+	tool.Equipped:Connect(function()
+		toolEquipped = true
+		createFontChangerGui()
+		createTestBillboard()
+	end)
+
+	tool.Unequipped:Connect(function()
+		toolEquipped = false
+		if fontGui then
+			fontGui:Destroy()
+			fontGui = nil
+		end
+		removeTestBillboard()
+	end)
+
+	tool.Parent = localPlayer.Backpack
+end
+
+-- Notifications for toggle
+local function notifyToggle(state)
+	StarterGui:SetCore("SendNotification", {
+		Title = "Auto Armor",
+		Text = state and "Auto armor enabled" or "Auto armor disabled",
+		Duration = 3,
+	})
+end
+
+-- Key toggle K
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then return end
+	if input.KeyCode == Enum.KeyCode.K then
+		if isChecking then
+			-- Disable monitor
+			if armorConnection then armorConnection:Disconnect() end
+			isChecking = false
+			clearStatus()
+			notifyToggle(false)
+		else
+			-- Enable monitor
+			local playerFolder = workspace.Players:FindFirstChild(name)
+			local armor = playerFolder and playerFolder:FindFirstChild("BodyEffects") and playerFolder.BodyEffects:FindFirstChild("Armor")
+			if armor and armor.Value < 200 then
+				ArmorTP()
+			end
+			armorConnection = startArmorMonitor()
+			isChecking = true
+			notifyToggle(true)
+		end
+	end
+end)
+
+-- Create armor text on spawn
+localPlayer.CharacterAdded:Connect(function()
+	task.wait(1)
+	createArmorText()
+end)
+
+-- Initial setup
+if localPlayer.Character then
+	createArmorText()
+end
+
+-- Give the ArmorChanger tool on script load
+giveArmorChangerTool()
+
+local Luna = loadstring(game:HttpGet("https://raw.githubusercontent.com/Nebula-Softworks/Luna-Interface-Suite/refs/heads/master/source.lua", true))()
+
+local Window = Luna:CreateWindow({
+	Name = "waad",
+	Subtitle = "stfu ok?",
+	LogoID = "82795327169782",
+	LoadingEnabled = true,
+	LoadingTitle = "loading script",
+	LoadingSubtitle = "by w_ad",
+	ConfigSettings = {
+		RootFolder = nil,
+		ConfigFolder = "waadcosls"
+	},
+	KeySystem = false,
+})
+
+Window:CreateHomeTab({
+	SupportedExecutors = {
+		"Synapse X",
+		"Krnl",
+		"ProtoSmasher",
+		"Fluxus",
+		"Script-Ware",
+		"EasyExploits",
+		"Electron",
+		"JJSploit",
+		"Calamari",
+		"SirHurt",
+		"Sentinel",
+		"WEAREDEVS",
+		"Comet",
+		"Cellery",
+		"Wave",
+		"CODex",
+		"Delta"
+	},
+	DiscordInvite = "1234",
+	Icon = 1
+})
+
+local Tab = Window:CreateTab({
+	Name = "Auto Armor",
+	Icon = "shield", -- icon for armor (choose any Luna icon name you like)
+	ShowTitle = true
+})
+
+-- Create the toggle inside the tab
+local AutoArmorToggle = Tab:CreateToggle({
+	Name = "Auto Armor",
+	Description = "Toggle automatic armor buying",
+	CurrentValue = false,
+	Callback = function(state)
+		if state then
+			-- Enable auto armor monitoring
+			if isChecking then return end -- already enabled
+			local playerFolder = workspace.Players:FindFirstChild(name)
+			local armor = playerFolder and playerFolder:FindFirstChild("BodyEffects") and playerFolder.BodyEffects:FindFirstChild("Armor")
+			if armor and armor.Value < 200 then
+				ArmorTP()
+			end
+			armorConnection = startArmorMonitor()
+			isChecking = true
+			notifyToggle(true)
+		else
+			-- Disable auto armor monitoring
+			if armorConnection then armorConnection:Disconnect() end
+			isChecking = false
+			clearStatus()
+			notifyToggle(false)
+		end
+	end
+}, "Toggle")
+
+local StompToggle = Tab:CreateToggle({
+	Name = "Auto Stomp",
+	Description = "Toggle automatic stomping",
+	CurrentValue = false,
+	Callback = function(state)
+		toggled = state
+		if toggled then
+			notify("Stomp ON")
+			connection = RunService.RenderStepped:Connect(function()
+				if isAboveAnotherPlayer() then
+					for i = 1, stompCount do
+						remote:FireServer(unpack(args))
+					end
+				end
+			end)
+		else
+			notify("Stomp OFF")
+			if connection then
+				connection:Disconnect()
+				connection = nil
+			end
+		end
+	end
+}, "Toggle")
