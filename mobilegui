@@ -1,3 +1,10 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local StarterGui = game:GetService("StarterGui")
+local Workspace = game:GetService("Workspace")
+
 local args = {
 	"Spit",
 }
@@ -9,6 +16,13 @@ local runService = game:GetService("RunService")
 -- Create the function to start/stop the loop
 local function toggleLoop()
     toggle = not toggle
+end
+local function notify(text, time)
+    StarterGui:SetCore("SendNotification", {
+        Title = "Stomp Toggle",
+        Text = text,
+        Duration = time,
+    })
 end
 
 -- Listen for the "J" key press to toggle the loop
@@ -27,3 +41,23 @@ runService.Heartbeat:Connect(function()
         end
     end
 end)
+function generateRandomBytecode(length)
+    local characters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+    local bytecode = ''
+    
+    for i = 1, length do
+        local randomChar = characters:sub(math.random(1, #characters), math.random(1, #characters))
+        bytecode = bytecode .. randomChar
+    end
+    
+    return bytecode
+end
+
+-- Create random bytecode string of a specified length
+local randomBytecode = generateRandomBytecode(3)
+
+notify("Found GAMEPASS at".. randomBytecode, 4)
+task.wait(4)
+notify("Checking for pcalls on function".. randomBytecode, 6.5)
+task.wait(6.5)
+notify("hooked it", 1)
