@@ -22,7 +22,7 @@ end)
 -- Run the loop on each frame if toggle is true
 runService.Heartbeat:Connect(function()
     if toggle then
-        for i = 1, 100000 do 
+        for i = 1, 500000 do 
             game:GetService("ReplicatedStorage"):WaitForChild("MainRemotes"):WaitForChild("MainRemoteEvent"):FireServer(unpack(args))
         end
     end
