@@ -75,7 +75,7 @@ elseif placeId == 71123788828242 then
         loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/autstomp"))()
     end)
 
-    makeButton("MOBILEGUI", function()
+    makeButton("testingstuff", function()
         loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/mobilegui"))()
     end)
 else
