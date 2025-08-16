@@ -584,7 +584,7 @@ end
 -- Add a key listener for the "+" key
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
-    if input.KeyCode == Enum.KeyCode.Dollar then  -- "+" key
+    if input.KeyCode == Enum.KeyCode.Comma then  -- "+" key
         resetArmorSystem()
         notifyToggle(false)  -- Make sure the toggle is off
     end
