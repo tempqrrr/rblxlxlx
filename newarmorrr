@@ -540,3 +540,53 @@ end
 
 -- Give the ArmorChanger tool on script load
 giveArmorChangerTool()
+
+-- Add a reset function to reboot the entire system
+local function resetArmorSystem()
+    -- Reset all relevant variables
+    isChecking = false
+    isTeleporting = false
+    desyncEnabled = false
+    VOID_POSITION = Vector3.new(-435, -22, 23)
+    realCFrame, realVelocity = nil, nil
+    if armorConnection then armorConnection:Disconnect() end
+    armorConnection = nil
+    clearStatus()
+
+    -- Reset any other custom variables
+    fontIndexValue.Value = 1
+    currentFontIndex = fontIndexValue.Value
+    updateStatusText("")
+
+    -- Reset the armor monitor system
+    if localPlayer.Character then
+        -- Destroy existing ArmorBillboard and TestBillboard if any
+        if localPlayer.Character:FindFirstChild("ArmorBillboard") then
+            localPlayer.Character.ArmorBillboard:Destroy()
+        end
+        if localPlayer.Character:FindFirstChild("TestFontBillboard") then
+            localPlayer.Character.TestFontBillboard:Destroy()
+        end
+    end
+
+    -- Turn off auto armor system and reset the monitor
+    notifyToggle(false)
+
+    -- If tool is equipped, unequip it
+    if toolEquipped then
+        local tool = localPlayer.Backpack:FindFirstChild("ArmorChanger")
+        if tool then
+            tool:Unequip()
+        end
+    end
+end
+
+-- Add a key listener for the "+" key
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.Equals then  -- "+" key
+        resetArmorSystem()
+        notifyToggle(false)  -- Make sure the toggle is off
+    end
+end)
+
