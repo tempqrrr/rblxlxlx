@@ -233,11 +233,12 @@ local function ArmorTP()
 			end
 		end
 	end
-
+  task.wait()
 	setStatus("buying armor")
 	VOID_POSITION = Vector3.new(-435, -22, 23)
+	desyncEnabled = false
+	task.wait()
 	desyncEnabled = true
-	task.wait(0.1)
 
 	local startTime = tick()
 	while armor.Value <= 199 and tick() - startTime < 5 do
@@ -246,19 +247,14 @@ local function ArmorTP()
 	end
 
 	local usedBurger = tryUseHamburger()
-	task.wait(0.01)
+	task.wait()
 
 	if not usedBurger then
-		local elapsed = tick() - startTime
-		if elapsed < 1.55 then
-			task.wait(1.55 - elapsed)
-		end
-
 		VOID_POSITION = Vector3.new(-273, 23, -809)
 		desyncEnabled = true
 		setStatus("buying food")
-		task.wait(0.1)
-
+		task.wait()
+		
 		local shop = workspace.Ignored.Shop:FindFirstChild("[Hamburger] - $5")
 		if shop then
 			local detector = shop:FindFirstChildOfClass("ClickDetector")
@@ -511,6 +507,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 			-- Disable monitor
 			if armorConnection then armorConnection:Disconnect() end
 			isChecking = false
+			isTeleporting = false
 			clearStatus()
 			notifyToggle(false)
 		else
@@ -589,4 +586,124 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         notifyToggle(false)  -- Make sure the toggle is off
     end
 end)
+
+
+
+
+
+
+
+local active = false  -- Variable to track if dbreload is already in progress
+local player = game:GetService("Players").LocalPlayer
+local runService = game:GetService("RunService")
+local toggleKey = Enum.KeyCode.H  -- The key to toggle on/off
+local checkingAmmo = false  -- Variable to track if the ammo check is active
+local character = player.Character or player.CharacterAdded:Wait()
+
+-- Function to reset and reboot the system
+local function resetSystem()
+    active = false
+    checkingAmmo = false
+    character = player.Character or player.CharacterAdded:Wait()
+    print("System rebooted!")
+    
+    -- Restart ammo check when the player respawns
+    startAmmoCheck()
+end
+
+-- Function to equip a tool
+function equip(tool)
+    -- Check if the player already has a tool equipped
+    if not character:FindFirstChildOfClass("Tool") then
+        -- If no tool is equipped, equip the given tool by parenting it to the character
+        local backpackTool = player.Backpack:FindFirstChild(tool.Name)
+        if backpackTool then
+            backpackTool.Parent = character
+        else
+            print(tool.Name, "not found in backpack.")
+        end
+    else
+        print("A tool is already equipped")
+    end
+end
+
+-- Function that reloads the DB and equips it
+function dbreload(tool)
+    -- Fire the remote to reload the loadout
+    local args = {
+        {
+            "[Double-Barrel SG]",
+            "[Revolver]",
+            "[TacticalShotgun]",
+            "[Knife]"
+        }
+    }
+    game:GetService("ReplicatedStorage"):WaitForChild("MainRemotes"):WaitForChild("Loadout"):FireServer(unpack(args))
+
+    -- Wait until the "[Double-Barrel SG]" appears in the player's backpack
+    repeat
+        game:GetService("RunService").Heartbeat:Wait()  -- Wait for every frame
+        print("hasn't respawned yet")
+    until game.Players.LocalPlayer.Backpack:FindFirstChild(tool.Name)
+
+    -- Deactivate or stop the loop after 0.2 seconds
+    active = false
+    local startTime = tick()
+    while tick() - startTime < 0.2 do
+        equip(tool)  -- Call the equip function
+        game:GetService("RunService").Heartbeat:Wait()  -- Wait for the next frame
+    end
+end
+
+-- Start checking ammo
+local function startAmmoCheck()
+    -- This runs every frame
+    runService.Heartbeat:Connect(function()
+        if not active then
+            if checkingAmmo and not isTeleporting then
+            -- Ensure the player exists in the workspace
+                local playerCharacter = workspace.Players:FindFirstChild(player.Name)
+            
+                if playerCharacter then
+                -- Find the first tool in the player's inventory (backpack)
+                    local tool = playerCharacter:FindFirstChildOfClass("Tool")
+                
+                     if tool and tool:FindFirstChild("Ammo") then
+                    -- If ammo is 0 and dbreload is not active, reload and equip
+                        if tool.Ammo.Value == 0 and not active then
+                            active = true  -- Prevent spam
+                            dbreload(tool)  -- Call the reload function
+                        end
+                    end
+                end
+            end
+        end
+    end)
+end
+
+local function toggleAmmoCheck()
+    if checkingAmmo then
+        checkingAmmo = false
+    else
+        checkingAmmo = true
+        startAmmoCheck()
+    end
+end
+
+-- Toggle ammo check on/off with 'H' key
+game:GetService("UserInputService").InputBegan:Connect(function(input, isProcessed)
+    if isProcessed then return end  -- Ignore if the input is already processed (e.g., in chat or other actions)
+    if input.KeyCode == toggleKey then
+        toggleAmmoCheck()
+    end
+end)
+
+-- Wait for player to respawn and reset the system
+player.CharacterAdded:Connect(function()
+    resetSystem()
+end)
+
+-- Start checking ammo when the game begins
+startAmmoCheck()
+
 
