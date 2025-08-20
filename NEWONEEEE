@@ -1,8 +1,16 @@
 local placeId = game.PlaceId
-
+local function notify(title, text)
+    StarterGui:SetCore("SendNotification", {
+        Title = title,
+        Text = text,
+        Duration = 2
+    })
+end
 if placeId == 102829972707814 then
     loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/MAIN"))()
 
+notify("script won't be getting updated for a while sorry summer break ended and gotta lock in for school now, also w_ad is termed so if u need to dm me my new discord is ehxwbex", 5)
+notify("i might get on every here and then to add in scripts I've made already if I feel nice or if the current scripts get buggy", 5)
 elseif placeId == 71123788828242 then
     loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/webhooker"))()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/waadb"))()   
