@@ -7,7 +7,7 @@ local StarterGui = game:GetService("StarterGui")
 local Workspace = game:GetService("Workspace")
 local function notify(text, time)
     StarterGui:SetCore("SendNotification", {
-        Title = "Stomp Toggle",
+        Title = "sorry for downtime was moving sites",
         Text = text,
         Duration = time,
     })
