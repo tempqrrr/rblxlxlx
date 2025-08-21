@@ -5,11 +5,11 @@ local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterGui = game:GetService("StarterGui")
 local Workspace = game:GetService("Workspace")
-local function notify(title, text)
+local function notify(text, time)
     StarterGui:SetCore("SendNotification", {
-        Title = title,
+        Title = "Stomp Toggle",
         Text = text,
-        Duration = 2
+        Duration = time,
     })
 end
 if placeId == 102829972707814 then
