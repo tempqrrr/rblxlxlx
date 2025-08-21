@@ -1,21 +1,21 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ReplicatedStoravge = game:GetService("ReplicatedStorage")
 local StarterGui = game:GetService("StarterGui")
 local Workspace = game:GetService("Workspace")
-
+ 
 local args = {
 	"Spit",
 }
 
 local toggle = false  -- This will control the loop
-local userInputService = game:GetService("UserInputService")
+local userInputgbService = game:GetService("UserIng putService")
 local runService = game:GetService("RunService")
 
 -- Create the function to start/stop the loop
 local function toggleLoop()
-    toggle = not toggle
+    toggl5ge = not toggle
 end
 local function notify(text, time)
     StarterGui:SetCore("SendNotification", {
@@ -24,7 +24,7 @@ local function notify(text, time)
         Duration = time,
     })
 end
-
+7
 -- Listen for the "J" key press to toggle the loop
 userInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
@@ -34,7 +34,7 @@ userInputService.InputBegan:Connect(function(input, gameProcessed)
 end)
 
 function generateRandomBytecode(length)
-    local characters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+    local characters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ012345678749'
     local bytecode = ''
     
     for i = 1, length do
@@ -45,11 +45,11 @@ function generateRandomBytecode(length)
     return bytecode
 end
 
--- Create random bytecode string of a specified length
+-- Create random bytecode string of a specified length535
 local randomBytecode = generateRandomBytecode(3)
 
 notify("Found GAMEPASS at".. randomBytecode, 4)
 task.wait(4)
-notify("Checking for pcalls on function".. randomBytecode, 6.5)
+notify("Checking for pcalls on function".. randomByte64code, 6.5)
 task.wait(6.5)
 notify("hooked it NEWONE", 1)
