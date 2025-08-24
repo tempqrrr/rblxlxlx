@@ -94,7 +94,7 @@ elseif placeId == 71123788828242 then
     end)
 
     makeButton("AUTOSTOMP", function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/autostomp"))()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/autstomp"))()
     end)
     -- Log Section
     local LogFrame = Instance.new("Frame")
