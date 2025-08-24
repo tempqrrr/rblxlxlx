@@ -6,6 +6,138 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterGui = game:GetService("StarterGui")
 local Workspace = game:GetService("Workspace")
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local MainRemoteEvent = ReplicatedStorage:WaitForChild("MainRemotes"):WaitForChild("MainRemoteEvent")
+local Player = game.Players.LocalPlayer
+local ChatService = game:GetService("Chat")
+local UserInputService = game:GetService("UserInputService")
+
+-- Create GUI elements
+local gui = Instance.new("ScreenGui")
+gui.Name = "SongGUI"
+gui.Parent = Player.PlayerGui
+gui.Enabled = false
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 300, 0, 200)
+frame.Position = UDim2.new(0.5, -150, 0.5, -100)
+frame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)  -- Dark Gray for background
+frame.Parent = gui
+
+local closeButton = Instance.new("TextButton")
+closeButton.Size = UDim2.new(0, 30, 0, 30)
+closeButton.Position = UDim2.new(1, -35, 0, 5)
+closeButton.Text = "X"
+closeButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)  -- Red for Close button
+closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeButton.Parent = frame
+
+local textbox = Instance.new("TextBox")
+textbox.Size = UDim2.new(0, 250, 0, 30)
+textbox.Position = UDim2.new(0.5, -125, 0.3, 0)
+textbox.Text = ""
+textbox.PlaceholderText = "Enter SONG ID"
+textbox.BackgroundColor3 = Color3.fromRGB(60, 60, 60)  -- Darker Gray for TextBox
+textbox.TextColor3 = Color3.fromRGB(255, 255, 255)  -- White text color
+textbox.Parent = frame
+
+local startStopButton = Instance.new("TextButton")
+startStopButton.Size = UDim2.new(0, 250, 0, 50)
+startStopButton.Position = UDim2.new(0.5, -125, 0.6, 0)
+startStopButton.Text = "Start"
+startStopButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)  -- Green for Start button
+startStopButton.TextColor3 = Color3.fromRGB(255, 255, 255)  -- White text color
+startStopButton.Parent = frame
+
+local isPlaying = false
+local currentId = nil
+
+-- Function to toggle the visibility of the GUI
+local function toggleGUI()
+    gui.Enabled = not gui.Enabled
+end
+
+-- Function to close the GUI
+local function closeGUI()
+    gui.Enabled = false
+end
+
+-- Function to handle Start/Stop button click
+local function onStartStopClicked()
+    local id = tonumber(textbox.Text)
+    
+    if id then
+        if isPlaying then
+            -- Stop the boombox
+            local args = {
+                "BoomboxStop",
+            }
+            MainRemoteEvent:FireServer(unpack(args))
+            startStopButton.Text = "Start"
+            startStopButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)  -- Green for Start
+            isPlaying = false
+        else
+            -- Start the boombox
+            local args = {
+                "Boombox",
+                id
+            }
+            MainRemoteEvent:FireServer(unpack(args))
+            startStopButton.Text = "Stop"
+            startStopButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)  -- Red for Stop
+            isPlaying = true
+            currentId = id
+        end
+    end
+end
+
+-- Function to handle chat message input
+local function onChatMessage(message)
+    if message:sub(1, 5) == "!play" then
+        toggleGUI()
+    end
+end
+
+-- Function to make the frame draggable
+local function makeDraggable(frame)
+    local dragInput, mousePos, framePos
+    local dragging = false
+
+    -- Detect mouse click to start dragging
+    frame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragInput = input
+            mousePos = UserInputService:GetMouseLocation()
+            framePos = frame.Position
+        end
+    end)
+
+    -- Detect mouse release to stop dragging
+    frame.InputEnded:Connect(function(input)
+        if input == dragInput then
+            dragging = false
+        end
+    end)
+
+    -- Update frame position when dragging
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging then
+            local delta = UserInputService:GetMouseLocation() - mousePos
+            frame.Position = UDim2.new(framePos.X.Scale, framePos.X.Offset + delta.X, framePos.Y.Scale, framePos.Y.Offset + delta.Y)
+        end
+    end)
+end
+
+-- Connect the functions to UI elements
+Player.Chatted:Connect(onChatMessage)
+closeButton.MouseButton1Click:Connect(closeGUI)
+startStopButton.MouseButton1Click:Connect(onStartStopClicked)
+
+-- Make the frame draggable
+makeDraggable(frame)
+
+
 local function notify(text, time)
     StarterGui:SetCore("SendNotification", {
         Title = "sorry for downtime was moving sites",
