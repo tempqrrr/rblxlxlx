@@ -248,31 +248,46 @@ local function ArmorTP()
 
 	local usedBurger = tryUseHamburger()
 	task.wait()
-
-	if not usedBurger then
-		VOID_POSITION = Vector3.new(-273, 23, -809)
-		desyncEnabled = true
-		setStatus("buying food")
+	
+  local player = game.Players.LocalPlayer
+	while player.Character.Humanoid.Health < 90 do
+		local usedBurger = tryUseHamburger()
 		task.wait()
-		
-		local shop = workspace.Ignored.Shop:FindFirstChild("[Hamburger] - $5")
-		if shop then
-			local detector = shop:FindFirstChildOfClass("ClickDetector")
-			if detector then
-				while not backpack:FindFirstChild("[Hamburger]") do
-					fireclickdetector(detector)
-					RunService.Heartbeat:Wait()
+
+		if not usedBurger then
+			VOID_POSITION = Vector3.new(-273, 23, -809)
+			desyncEnabled = true
+			setStatus("buying food")
+			task.wait()
+
+			local shop = workspace.Ignored.Shop:FindFirstChild("[Hamburger] - $5")
+			if shop then
+				local detector = shop:FindFirstChildOfClass("ClickDetector")
+				if detector then
+					while not backpack:FindFirstChild("[Hamburger]") do
+						fireclickdetector(detector)
+						RunService.Heartbeat:Wait()
+					end
 				end
 			end
+			task.wait(0.1)
 		end
-		task.wait(0.1)
+		task.wait(0.5)  -- Adding a small delay to avoid continuous loop without check
 	end
+
 
 	desyncEnabled = false
 
 	if equippedTool and backpack then
-		equippedTool.Parent = character
+		local success, errorMessage = pcall(function()
+			equippedTool.Parent = character
+		end)
+
+		if not success then
+			warn("Failed to equip tool: " .. errorMessage)  -- Log the error message, if needed
+		end
 	end
+
 
 	clearStatus()
 	isTeleporting = false
@@ -705,5 +720,4 @@ end)
 
 -- Start checking ammo when the game begins
 startAmmoCheck()
-
 
