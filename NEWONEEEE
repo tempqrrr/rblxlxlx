@@ -14,6 +14,18 @@ local function notify(text, time)
     })
 end
 
+local function checkBackpackStatus()
+    while true do
+        if not game:GetService("StarterGui"):GetCoreGuiEnabled(Enum.CoreGuiType.Backpack) then
+            game:GetService("StarterGui"):SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, true)
+        end
+        game:GetService("RunService").Heartbeat:Wait()  -- Runs the check every frame
+    end
+end
+
+checkBackpackStatus()
+
+
 if placeId == 102829972707814 then
     loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/MAIN"))()
 
