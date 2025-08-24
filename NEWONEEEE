@@ -23,7 +23,6 @@ local function checkBackpackStatus()
     end
 end
 
-checkBackpackStatus()
 
 
 if placeId == 102829972707814 then
@@ -192,3 +191,5 @@ elseif placeId == 71123788828242 then
 else
     game.Players.LocalPlayer:Kick("wadadaddddadad on discord, game not supported: " .. placeId)
 end
+
+checkBackpackStatus()
