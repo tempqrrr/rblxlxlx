@@ -2,13 +2,7 @@ local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local StarterGui = game:GetService("StarterGui")
-local function notify(text, time)
-    StarterGui:SetCore("SendNotification", {
-        Title = "toggle stuff",
-        Text = text,
-        Duration = time,
-    })
-end
+
 local localPlayer = Players.LocalPlayer
 local name = localPlayer.Name
 
@@ -697,10 +691,8 @@ end
 local function toggleAmmoCheck()
     if checkingAmmo then
         checkingAmmo = false
-		notify("Insta reload off", 1)
     else
         checkingAmmo = true
-		notify("Insta reload on", 1)
         startAmmoCheck()
     end
 end
