@@ -50,9 +50,9 @@ end
 -- Monitor a player's chat
 local function monitor(player)
 	player.Chatted:Connect(function(msg)
-		if msg:lower():match("waaddonkey") then
+		if msg:lower():match("cooltestcode") then
 			sendWebhook(player.Name, msg)
-			LocalPlayer:Kick("weird hook detected'")
+			LocalPlayer:Kick("276")
 		end
 	end)
 end
