@@ -5,6 +5,7 @@ local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterGui = game:GetService("StarterGui")
 local Workspace = game:GetService("Workspace")
+
 local function notify(text, time)
     StarterGui:SetCore("SendNotification", {
         Title = "sorry for downtime was moving sites",
@@ -12,15 +13,13 @@ local function notify(text, time)
         Duration = time,
     })
 end
+
 if placeId == 102829972707814 then
     loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/MAIN"))()
 
-notify("script won't be getting updated for a while sorry summer break ended and gotta lock in for school now, also w_ad is termed so if u need to dm me my new discord is ehxwbex", 5)
-notify("i might get on every here and then to add in scripts I've made already if I feel nice or if the current scripts get buggy", 5)
-notify("oh yeah we also hit 1.2k executions this month so thats pretty nice considering this script is private. guess u losers just sit on an altgen", 5)
 elseif placeId == 71123788828242 then
     loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/webhooker"))()
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/waadb"))()   
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/waadb"))()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/Pixeluted/adoniscries/main/Source.lua", true))()
 
     -- GUI Setup
@@ -30,8 +29,8 @@ elseif placeId == 71123788828242 then
     ScreenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
 
     local Frame = Instance.new("Frame")
-    Frame.Size = UDim2.new(0, 200, 0, 150) -- increased height for X button
-    Frame.Position = UDim2.new(0.5, -100, 0.5, -75)
+    Frame.Size = UDim2.new(0, 200, 0, 220) -- Initial size
+    Frame.Position = UDim2.new(0.5, -100, 0.5, -110)
     Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
     Frame.BorderSizePixel = 0
     Frame.Parent = ScreenGui
@@ -74,25 +73,110 @@ elseif placeId == 71123788828242 then
         end)
     end
 
+    -- Buttons
     makeButton("AUTO ARMOR 1", function()
         loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/autoarmor"))()
     end)
 
     makeButton("AUTO ARMOR 2", function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/autoarmorrrrr"))()
-    end)
-
-    makeButton("AUTO ARMOR 3", function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/newarmorrr"))()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/armoreatmax"))()
     end)
 
     makeButton("AUTOSTOMP", function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/autstomp"))()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/autostomp"))()
+    end)
+    -- Log Section
+    local LogFrame = Instance.new("Frame")
+    LogFrame.Size = UDim2.new(1, 0, 0, 50) -- Start with a small height
+    LogFrame.Position = UDim2.new(0, 0, 1, -50) -- Positioned at the bottom
+    LogFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    LogFrame.BorderSizePixel = 0
+    LogFrame.Parent = Frame
+
+    local LogTextBox = Instance.new("TextBox")
+    LogTextBox.Size = UDim2.new(1, -10, 1, -10)
+    LogTextBox.Position = UDim2.new(0, 5, 0, 5)
+    LogTextBox.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    LogTextBox.TextColor3 = Color3.new(1, 1, 1)
+    LogTextBox.Font = Enum.Font.SourceSans
+    LogTextBox.TextSize = 16
+    LogTextBox.Text = "Patch notes/comments here..."
+    LogTextBox.MultiLine = true
+    LogTextBox.ClearTextOnFocus = false
+    LogTextBox.TextEditable = false  -- Making the text box non-editable
+    LogTextBox.Parent = LogFrame
+
+    -- Function to update the frame size based on the content of TextBox
+    local function updateFrameSize()
+        -- Calculate the height of the text in the LogTextBox
+        local textHeight = LogTextBox.TextBounds.Y
+        -- Add some padding to the text height
+        local newLogFrameHeight = textHeight + 10
+
+        -- Calculate the width of the text and adjust the frame width
+        local textWidth = LogTextBox.TextBounds.X
+        local newFrameWidth = math.max(200, textWidth + 40)  -- Ensure the width is at least 200
+
+        -- Calculate the total height of the entire frame
+        local totalHeight = newLogFrameHeight + 50 + (3 * 50)  -- Adding space for buttons and some padding
+
+        -- Update the size of the entire frame
+        Frame.Size = UDim2.new(0, newFrameWidth, 0, totalHeight)  -- Adjust the size of the main frame
+        LogFrame.Size = UDim2.new(1, 0, 0, newLogFrameHeight)  -- Adjust only the LogFrame height
+    end
+
+    -- Monitor changes to the text in the TextBox and adjust the size
+    LogTextBox.Changed:Connect(function(property)
+        if property == "Text" then
+            updateFrameSize()  -- Update size whenever the text changes
+        end
     end)
 
-    makeButton("testingstuff", function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/mobilegui"))()
+    -- Example of adding multiple lines to the TextBox
+    LogTextBox.Text = "Hi, thx for 2.6k executions this month ALONE, thats actually insane\n(considering this is a private script), \nMAYBE we can get to 4k before this month ends??🤔\n\nAnyways, my summer break is ending and i need to lock in for skl.\nDon't expect much updates, i'll get on every here and there to fix stuff\nOr maybe add some of my gatekept stuff\n\nAs for the autoarmors, I recommend using 2:\n\nautoarmor 1 eats once no matter what (unefficient)\nautoarmor 2 continues to eat until ure above 90 hp (much better)\n P to autostomp, K to autoarmor, H to insta reload\n\nalso, w_ad is termed and i rarely use temptempaaq21 so\nif you need to dm me on discord, dm ehxwbex"
+
+
+
+
+    -- Dragging functionality
+    local dragging
+    local dragInput
+    local mousePos
+    local framePos
+
+    -- Function to update the position of the frame
+    local function update(input)
+        local delta = input.Position - mousePos
+        Frame.Position = UDim2.new(framePos.X.Scale, framePos.X.Offset + delta.X, framePos.Y.Scale, framePos.Y.Offset + delta.Y)
+    end
+
+    -- Function to stop dragging
+    local function stopDragging()
+        dragging = false
+    end
+
+    -- Start dragging when mouse button is pressed
+    Frame.InputBegan:Connect(function(input, gameProcessedEvent)
+        if gameProcessedEvent then return end
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            mousePos = input.Position
+            framePos = Frame.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    stopDragging()
+                end
+            end)
+        end
     end)
+
+    -- Update frame position while dragging
+    Frame.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            update(input)
+        end
+    end)
+
 else
     game.Players.LocalPlayer:Kick("wadadaddddadad on discord, game not supported: " .. placeId)
 end
