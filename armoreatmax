@@ -9,6 +9,13 @@ local name = localPlayer.Name
 local isChecking = false
 local isTeleporting = false
 local armorConnection = nil
+local function notify(text, time)
+    StarterGui:SetCore("SendNotification", {
+        Title = "toggle stuff",
+        Text = text,
+        Duration = time,
+    })
+end
 
 -- Desync
 local desyncEnabled = false
@@ -699,8 +706,10 @@ end
 local function toggleAmmoCheck()
     if checkingAmmo then
         checkingAmmo = false
+		notify("Insta reload off", 1)
     else
         checkingAmmo = true
+		notify("Insta reload on", 1)
         startAmmoCheck()
     end
 end
