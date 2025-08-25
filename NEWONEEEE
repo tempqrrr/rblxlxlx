@@ -276,7 +276,7 @@ elseif placeId == 71123788828242 or placeId == 137331933352587 then
     end)
 
     -- Example of adding multiple lines to the TextBox
-    LogTextBox.Text = "Hi, thx for 2.6k executions this month ALONE, thats actually insane\n(considering this is a private script), \nMAYBE we can get to 4k before this month ends??🤔\n\nAnyways, my summer break is ending and i need to lock in for skl.\nDon't expect much updates, i'll get on every here and there to fix stuff\nOr maybe add some of my gatekept stuff\n\nAs for the autoarmors, I recommend using 2:\n\nautoarmor 1 eats once no matter what (unefficient)\nautoarmor 2 continues to eat until ure above 90 hp (much better)\n P to autostomp, K to autoarmor, H to insta reload\n\nalso, w_ad is termed and i rarely use temptempaaq21 so\nif you need to dm me on discord, dm ehxwbex"
+    LogTextBox.Text = "-Added Zee Hood as a supported game\n\n(It's legit just der while der is down)\n\nBye"
 
 
 
