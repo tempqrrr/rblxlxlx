@@ -157,7 +157,7 @@ end
 
 
 
-if placeId == 102829972707814 then
+if placeId == 90410839992321 then
     loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/MAIN"))()
 
 elseif placeId == 71123788828242 or placeId == 137331933352587 then
@@ -276,7 +276,7 @@ elseif placeId == 71123788828242 or placeId == 137331933352587 then
     end)
 
     -- Example of adding multiple lines to the TextBox
-    LogTextBox.Text = "-Added Zee Hood as a supported game\n\n(It's legit just der while der is down)\n\nBye"
+    LogTextBox.Text = "-Added Zee Hood as a supported game\n\nBye"
 
 
 
