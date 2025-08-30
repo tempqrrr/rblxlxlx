@@ -217,18 +217,6 @@ elseif placeId == 1
         end)
     end
 
-    -- Buttons
-    makeButton("AUTO ARMOR 1", function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/autoarmor"))()
-    end)
-
-    makeButton("AUTO ARMOR 2", function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/armoreatmax"))()
-    end)
-
-    makeButton("AUTOSTOMP", function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/autstomp"))()
-    end)
     -- Log Section
     local LogFrame = Instance.new("Frame")
     LogFrame.Size = UDim2.new(1, 0, 0, 50) -- Start with a small height
