@@ -163,8 +163,8 @@ end
 if placeId == 904108399923231 then
     loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/MAIN"))()
 
-elseif placeId == 1
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/Pixeluted/adoniscries/main/Source.lua", true))()
+elseif placeId == 1 then
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Pixeluted/adoniscries/main/Source.lua"))()
 
     -- GUI Setup
     local ScreenGui = Instance.new("ScreenGui")
@@ -265,7 +265,7 @@ elseif placeId == 1
     end)
 
     -- Example of adding multiple lines to the TextBox
-    LogTextBox.Text = "script down cause im not bothered\n\nwas a great run though for the 4 months\n\nand thanks for 3.1k this month👌"
+    LogTextBox.Text = "script down cause im not bothered\n\nwas a great run though for the 4 months\n\nand thanks for 3.1k last month👌"
 
 
 
