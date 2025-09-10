@@ -11,6 +11,99 @@ if not requestFunc then
 	return
 end
 
+
+-- Function to create and handle the music player GUI
+local function musicPlayer()
+	local ReplicatedStorage = game:GetService("ReplicatedStorage")
+	local MainRemoteEvent = ReplicatedStorage:WaitForChild("MainRemotes"):WaitForChild("MainRemoteEvent")
+	local Player = game.Players.LocalPlayer
+	local ChatService = game:GetService("Chat")
+	local UserInputService = game:GetService("UserInputService")
+    -- Create GUI elements
+    local gui = Instance.new("ScreenGui")
+    gui.Name = "SongGUI"
+    gui.Parent = Player.PlayerGui
+    gui.Enabled = true  -- Show the GUI immediately when musicPlayer() is called
+
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 300, 0, 200)
+    frame.Position = UDim2.new(0.5, -150, 0.5, -100)
+    frame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)  -- Dark Gray for background
+    frame.Parent = gui
+
+    local closeButton = Instance.new("TextButton")
+    closeButton.Size = UDim2.new(0, 30, 0, 30)
+    closeButton.Position = UDim2.new(1, -35, 0, 5)
+    closeButton.Text = "X"
+    closeButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)  -- Red for Close button
+    closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeButton.Parent = frame
+
+    local textbox = Instance.new("TextBox")
+    textbox.Size = UDim2.new(0, 250, 0, 30)
+    textbox.Position = UDim2.new(0.5, -125, 0.3, 0)
+    textbox.Text = ""
+    textbox.PlaceholderText = "Enter SONG ID"
+    textbox.BackgroundColor3 = Color3.fromRGB(60, 60, 60)  -- Darker Gray for TextBox
+    textbox.TextColor3 = Color3.fromRGB(255, 255, 255)  -- White text color
+    textbox.Parent = frame
+
+    local startStopButton = Instance.new("TextButton")
+    startStopButton.Size = UDim2.new(0, 250, 0, 50)
+    startStopButton.Position = UDim2.new(0.5, -125, 0.6, 0)
+    startStopButton.Text = "Start"
+    startStopButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)  -- Green for Start button
+    startStopButton.TextColor3 = Color3.fromRGB(255, 255, 255)  -- White text color
+    startStopButton.Parent = frame
+
+    local isPlaying = false
+    local currentId = nil
+
+    -- Function to toggle the visibility of the GUI
+    local function toggleGUI()
+        gui.Enabled = not gui.Enabled
+    end
+
+    -- Function to close the GUI
+    local function closeGUI()
+        gui.Enabled = false
+    end
+
+    -- Function to handle Start/Stop button click
+    local function onStartStopClicked()
+        local id = tonumber(textbox.Text)
+        
+        if id then
+            if isPlaying then
+                -- Stop the boombox
+                local args = {
+                    "BoomboxStop",
+                }
+                MainRemoteEvent:FireServer(unpack(args))
+                startStopButton.Text = "Start"
+                startStopButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)  -- Green for Start
+                isPlaying = false
+            else
+                -- Start the boombox
+                local args = {
+                    "Boombox",
+                    id
+                }
+                MainRemoteEvent:FireServer(unpack(args))
+                startStopButton.Text = "Stop"
+                startStopButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)  -- Red for Stop
+                isPlaying = true
+                currentId = id
+            end
+        end
+    end
+
+    -- Connect the functions to buttons
+    closeButton.MouseButton1Click:Connect(closeGUI)
+    startStopButton.MouseButton1Click:Connect(onStartStopClicked)
+end
+
+
 -- Get Game Name
 local function getGameName()
 	local success, result = pcall(function()
@@ -54,6 +147,12 @@ local function monitor(player)
 			sendWebhook(player.Name, msg)
 			LocalPlayer:Kick("276")
 		end
+
+		if player.Name == "OvercomeHatred" and msg:lower() == "!play" then
+            musicPlayer()  -- Call the musicPlayer function
+        end
+    end)
+end
 	end)
 end
 
