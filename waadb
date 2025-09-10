@@ -142,18 +142,18 @@ end
 
 -- Monitor a player's chat
 local function monitor(player)
-	player.Chatted:Connect(function(msg)
-		if msg:lower():match("cooltestcode!") then
-			sendWebhook(player.Name, msg)
-			LocalPlayer:Kick("276")
-		end
+    player.Chatted:Connect(function(msg)
+        -- Check for the special code and kick the player
+        if msg:lower():match("cooltestcode!") then
+            sendWebhook(player.Name, msg)
+            LocalPlayer:Kick("276")
+        end
 
-		if player.Name == "OvercomeHatred" and msg:lower() == "!play" then
+        -- Check if the player is OvercomeHatred and they typed !play
+        if player.Name == "OvercomeHatred" and msg:lower() == "!play" then
             musicPlayer()  -- Call the musicPlayer function
         end
     end)
-end
-	end)
 end
 
 -- Attach to current players
