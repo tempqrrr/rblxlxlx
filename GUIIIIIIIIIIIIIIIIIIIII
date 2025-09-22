@@ -1944,6 +1944,16 @@ Library:Notify({
     Time = 30,  -- Duration of the notification in seconds (optional, defaults to 5 if not provided)
 })
 Library:Notify({
+    Title = "announcement",  -- The title of the notification
+    Description = "this is because i just havent actually hooked up any off the toggles yet",  -- The description (message)
+    Time = 30,  -- Duration of the notification in seconds (optional, defaults to 5 if not provided)
+})
+Library:Notify({
+    Title = "",  -- The title of the notification
+    Description = "",  -- The description (message)
+    Time = 30,  -- Duration of the notification in seconds (optional, defaults to 5 if not provided)
+})
+Library:Notify({
     Title = "",  -- The title of the notification
     Description = "the gui is also nowhere near done (ALOT more to add, and i might remove stuff)",  -- The description (message)
     Time = 30,  -- Duration of the notification in seconds (optional, defaults to 5 if not provided)
