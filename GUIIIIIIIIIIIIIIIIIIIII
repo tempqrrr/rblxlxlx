@@ -1,0 +1,1984 @@
+local repo = 'https://raw.githubusercontent.com/mstudio45/LinoriaLib/main/'
+
+local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
+local ThemeManager = loadstring(game:HttpGet(repo .. 'addons/ThemeManager.lua'))()
+local SaveManager = loadstring(game:HttpGet(repo .. 'addons/SaveManager.lua'))()
+local Options = Library.Options
+local Toggles = Library.Toggles
+
+Library.ShowToggleFrameInKeybinds = true -- Make toggle keybinds work inside the keybinds UI (aka adds a toggle to the UI). Good for mobile users (Default value = true)
+Library.ShowCustomCursor = true -- Toggles the Linoria cursor globaly (Default value = true)
+Library.NotifySide = "Left" -- Changes the side of the notifications globaly (Left, Right) (Default value = Left)
+
+local Window = Library:CreateWindow({
+	-- Set Center to true if you want the menu to appear in the center
+	-- Set AutoShow to true if you want the menu to appear when it is created
+	-- Set Resizable to true if you want to have in-game resizable Window
+	-- Set ShowCustomCursor to false if you don't want to use the Linoria cursor
+	-- NotifySide = Changes the side of the notifications (Left, Right) (Default value = Left)
+	-- Position and Size are also valid options here
+	-- but you do not need to define them unless you are changing them :)
+
+	Title = '             der hood hateclub           [being made by w_ad]',
+	Center = false,
+	AutoShow = true,
+	Resizable = true,
+	ShowCustomCursor = false,
+	NotifySide = "Left",
+	TabPadding = 10,
+	MenuFadeTime = 0.2
+})
+
+local Tabs = {
+	-- Creates a new tab titled Main
+	Main = Window:AddTab('  Main  '),
+	Character = Window:AddTab('  Character  '),
+	Visuals = Window:AddTab('  Visuals  '),
+	Misc = Window:AddTab('  Misc  '),
+	['Settings'] = Window:AddTab('Settings'),
+}
+
+local TabBox = Tabs.Main:AddLeftTabbox() -- Add Tabbox on left side
+
+local aimbottab = TabBox:AddTab('Aimbot')
+local silentaimtab = TabBox:AddTab('Silent aim')
+
+aimbottab:AddToggle('aimbotenable', {
+	Text = 'enable',
+	Tooltip = 'enable the aimbot', -- Information shown when you hover over the toggle
+	DisabledTooltip = 'disabled', -- Information shown when you hover over the toggle while it's disabled
+
+	Default = false, -- Default value (true / false)
+	Disabled = false, -- Will disable the toggle (true / false)
+	Visible = true, -- Will make the toggle invisible (true / false)
+	Risky = false, -- Makes the text red (the color can be changed using Library.RiskColor) (Default value = false)
+
+	Callback = function(Value)
+		print('[cb] MyToggle changed to:', Value)
+	end
+}):AddKeyPicker('aimbotkeybind', {
+	-- SyncToggleState only works with toggles.
+	-- It allows you to make a keybind which has its state synced with its parent toggle
+
+	-- Example: Keybind which you use to toggle flyhack, etc.
+	-- Changing the toggle disables the keybind state and toggling the keybind switches the toggle state
+
+	Default = '', -- String as the name of the keybind (MB1, MB2 for mouse buttons)
+	SyncToggleState = false,
+
+
+	-- You can define custom Modes but I have never had a use for it.
+	Mode = 'Toggle', -- Modes: Always, Toggle, Hold, Press (example down below)
+
+	Text = 'aimbot', -- Text to display in the keybind menu
+	NoUI = false, -- Set to true if you want to hide from the Keybind menu,
+
+	-- Occurs when the keybind is clicked, Value is `true`/`false`
+	Callback = function(Value)
+		print('[cb] Keybind clicked!', Value)
+	end,
+
+	-- Occurs when the keybind itself is changed, `New` is a KeyCode Enum OR a UserInputType Enum
+	ChangedCallback = function(New)
+		print('[cb] Keybind changed!', New)
+	end
+})
+
+-- OnClick is only fired when you press the keybind and the mode is Toggle
+-- Otherwise, you will have to use Keybind:GetState()
+Options.aimbotkeybind:OnClick(function()
+	print('Keybind clicked!', Options.aimbotkeybind:GetState())
+end)
+
+Options.aimbotkeybind:OnChanged(function()
+	print('Keybind changed!', Options.aimbotkeybind.Value)
+end)
+
+task.spawn(function()
+	while task.wait(1) do
+		-- example for checking if a keybind is being pressed
+		local state = Options.aimbotkeybind:GetState()
+		if state then
+			print('KeyPicker is being held down')
+		end
+
+		if Library.Unloaded then break end
+	end
+end)
+
+aimbottab:AddToggle('stickyaim', {
+	Text = 'sticky aim',
+	Tooltip = 'to stay locked onto same target', -- Information shown when you hover over the toggle
+	DisabledTooltip = 'disabled', -- Information shown when you hover over the toggle while it's disabled
+
+	Default = false, -- Default value (true / false)
+	Disabled = false, -- Will disable the toggle (true / false)
+	Visible = true, -- Will make the toggle invisible (true / false)
+	Risky = false, -- Makes the text red (the color can be changed using Library.RiskColor) (Default value = false)
+
+	Callback = function(Value)
+		print('[cb] MyToggle changed to:', Value)
+	end
+})
+aimbottab:AddToggle('closestpart', {
+	Text = 'closest part',
+	Tooltip = 'target the closest part to mouse instead of a set part', -- Information shown when you hover over the toggle
+	DisabledTooltip = 'disabled', -- Information shown when you hover over the toggle while it's disabled
+
+	Default = false, -- Default value (true / false)
+	Disabled = false, -- Will disable the toggle (true / false)
+	Visible = true, -- Will make the toggle invisible (true / false)
+	Risky = false, -- Makes the text red (the color can be changed using Library.RiskColor) (Default value = false)
+
+	Callback = function(Value)
+		print('[cb] MyToggle changed to:', Value)
+	end
+})
+
+aimbottab:AddToggle('targetpart', {
+	Text = 'target part',
+	Tooltip = 'if not closest part then uses this', -- Information shown when you hover over the toggle
+	DisabledTooltip = 'disabled', -- Information shown when you hover over the toggle while it's disabled
+
+	Default = false, -- Default value (true / false)
+	Disabled = false, -- Will disable the toggle (true / false)
+	Visible = true, -- Will make the toggle invisible (true / false)
+	Risky = false, -- Makes the text red (the color can be changed using Library.RiskColor) (Default value = false)
+
+	Callback = function(Value)
+		print('[cb] MyToggle changed to:', Value)
+	end
+}):AddDropdown('aimbotpart', {
+	Values = { 'head', 'uppertorso', 'lowertorso', 'humanoidrootpart', 'leftarm', 'rightarm', 'leftleg', 'rightleg'},
+	Default = 1, -- number index of the value / string
+	Multi = false, -- true / false, allows multiple choices to be selected
+
+	Text = 'target part',
+	Tooltip = 'if not closest part then uses this', -- Information shown when you hover over the dropdown
+	DisabledTooltip = 'I am disabled!', -- Information shown when you hover over the dropdown while it's disabled
+
+	Searchable = false, -- true / false, makes the dropdown searchable (great for a long list of values)
+
+	Callback = function(Value)
+		print('[cb] Dropdown got changed. New value:', Value)
+	end,
+
+	Disabled = false, -- Will disable the dropdown (true / false)
+	Visible = true, -- Will make the dropdown invisible (true / false)
+})
+Options.aimbotpart:OnChanged(function()
+	print('Dropdown got changed. New value:', Options.aimbotpart.Value)
+end)
+
+aimbottab:AddToggle('aimbotshowfov', {
+	Text = 'show fov',
+	Tooltip = 'draw a fov circle', -- Information shown when you hover over the toggle
+	DisabledTooltip = 'disabled', -- Information shown when you hover over the toggle while it's disabled
+
+	Default = false, -- Default value (true / false)
+	Disabled = false, -- Will disable the toggle (true / false)
+	Visible = true, -- Will make the toggle invisible (true / false)
+	Risky = false, -- Makes the text red (the color can be changed using Library.RiskColor) (Default value = false)
+
+	Callback = function(Value)
+		print('[cb] MyToggle changed to:', Value)
+	end
+}):AddColorPicker('aimbotcolor', {
+	Default = Color3.new(1, 0, 0),
+	Title = 'fov color', -- Optional. Allows you to have a custom color picker title (when you open it)
+	Transparency = 0, -- Optional. Enables transparency changing for this color picker (leave as nil to disable)
+
+	Callback = function(Value, Transparency)
+		print('[cb] Color changed!', Value, '| Transparency changed to:', Transparency)
+	end
+})
+
+aimbottab:AddSlider('aimbotfov', {
+	Text = 'fov radius',
+	Default = 0,
+	Min = 0,
+	Max = 200,
+	BlankSize = 5,
+	Rounding = 1,
+	Compact = true,
+
+	Callback = function(Value)
+		print('[cb] MySlider was changed! New value:', Value)
+	end,
+
+	Tooltip = 'how big to make radius', -- Information shown when you hover over the slider
+	DisabledTooltip = 'I am disabled!', -- Information shown when you hover over the slider while it's disabled
+
+	Disabled = false, -- Will disable the slider (true / false)
+	Visible = true, -- Will make the slider invisible (true / false)
+})
+
+-- Options is a table added to getgenv() by the library
+-- You index Options with the specified index, in this case it is 'MySlider'
+-- To get the value of the slider you do slider.Value
+
+Options.aimbotfov:OnChanged(function()
+	print('MySlider was changed! New value:', Options.aimbotfov.Value)
+end)
+
+aimbottab:AddToggle('aimbotsmoothing', { Text = 'smoothing' });
+local Depbox = aimbottab:AddDependencyBox();
+
+Depbox:AddSlider('aimbotsmoothingvalue', {
+	Text = 'smoothing value',
+	Default = 0.5,
+	Min = 0,
+	Max = 100,
+	Rounding = 0,
+	Suffix = '%',
+	
+
+	
+	Compact = true,
+	
+	FormatDisplayValue = function(slider, value)
+		if value then return tostring(value) .. '%' end
+		-- If you return nil, the default formatting will be applied
+	end,
+
+	Callback = function(Value)
+		print('[cb] MySlider was changed! New value:', Value)
+	end,
+
+	Tooltip = 'how much to smooth', -- Information shown when you hover over the slider
+	DisabledTooltip = 'I am disabled!', -- Information shown when you hover over the slider while it's disabled
+
+	Disabled = false, -- Will disable the slider (true / false)
+	Visible = true, -- Will make the slider invisible (true / false)
+})
+
+Depbox:SetupDependencies({
+	{ Toggles.aimbotsmoothing, true } -- We can also pass `false` if we only want our features to show when the toggle is off!
+});
+
+-- Options is a table added to getgenv() by the library
+-- You index Options with the specified index, in this case it is 'MySlider'
+-- To get the value of the slider you do slider.Value
+
+Options.aimbotsmoothingvalue:OnChanged(function()
+	print('MySlider was changed! New value:', Options.aimbotsmoothingvalue.Value)
+end)
+
+silentaimtab:AddToggle('silentaimenable', {
+	Text = 'enable',
+	Tooltip = 'enable the silent aim', -- Information shown when you hover over the toggle
+	DisabledTooltip = 'disabled', -- Information shown when you hover over the toggle while it's disabled
+
+	Default = false, -- Default value (true / false)
+	Disabled = false, -- Will disable the toggle (true / false)
+	Visible = true, -- Will make the toggle invisible (true / false)
+	Risky = false, -- Makes the text red (the color can be changed using Library.RiskColor) (Default value = false)
+
+	Callback = function(Value)
+		print('[cb] MyToggle changed to:', Value)
+	end
+}):AddKeyPicker('silentaimkeybind', {
+	-- SyncToggleState only works with toggles.
+	-- It allows you to make a keybind which has its state synced with its parent toggle
+
+	-- Example: Keybind which you use to toggle flyhack, etc.
+	-- Changing the toggle disables the keybind state and toggling the keybind switches the toggle state
+
+	Default = '', -- String as the name of the keybind (MB1, MB2 for mouse buttons)
+	SyncToggleState = false,
+
+
+	-- You can define custom Modes but I have never had a use for it.
+	Mode = 'Toggle', -- Modes: Always, Toggle, Hold, Press (example down below)
+
+	Text = 'silent aim', -- Text to display in the keybind menu
+	NoUI = false, -- Set to true if you want to hide from the Keybind menu,
+
+	-- Occurs when the keybind is clicked, Value is `true`/`false`
+	Callback = function(Value)
+		print('[cb] Keybind clicked!', Value)
+	end,
+
+	-- Occurs when the keybind itself is changed, `New` is a KeyCode Enum OR a UserInputType Enum
+	ChangedCallback = function(New)
+		print('[cb] Keybind changed!', New)
+	end
+})
+
+-- OnClick is only fired when you press the keybind and the mode is Toggle
+-- Otherwise, you will have to use Keybind:GetState()
+Options.silentaimkeybind:OnClick(function()
+	print('Keybind clicked!', Options.silentaimkeybind:GetState())
+end)
+
+Options.silentaimkeybind:OnChanged(function()
+	print('Keybind changed!', Options.silentaimkeybind.Value)
+end)
+
+task.spawn(function()
+	while task.wait(1) do
+		-- example for checking if a keybind is being pressed
+		local state = Options.silentaimkeybind:GetState()
+		if state then
+			print('KeyPicker is being held down')
+		end
+
+		if Library.Unloaded then break end
+	end
+end)
+
+silentaimtab:AddToggle('silentstickyaim', {
+	Text = 'sticky aim',
+	Tooltip = 'to stay locked onto same target', -- Information shown when you hover over the toggle
+	DisabledTooltip = 'disabled', -- Information shown when you hover over the toggle while it's disabled
+
+	Default = false, -- Default value (true / false)
+	Disabled = false, -- Will disable the toggle (true / false)
+	Visible = true, -- Will make the toggle invisible (true / false)
+	Risky = false, -- Makes the text red (the color can be changed using Library.RiskColor) (Default value = false)
+
+	Callback = function(Value)
+		print('[cb] MyToggle changed to:', Value)
+	end
+})
+silentaimtab:AddToggle('silentclosestpart', {
+	Text = 'closest part',
+	Tooltip = 'target the closest part to mouse instead of a set part', -- Information shown when you hover over the toggle
+	DisabledTooltip = 'disabled', -- Information shown when you hover over the toggle while it's disabled
+
+	Default = false, -- Default value (true / false)
+	Disabled = false, -- Will disable the toggle (true / false)
+	Visible = true, -- Will make the toggle invisible (true / false)
+	Risky = false, -- Makes the text red (the color can be changed using Library.RiskColor) (Default value = false)
+
+	Callback = function(Value)
+		print('[cb] MyToggle changed to:', Value)
+	end
+})
+
+silentaimtab:AddToggle('silenttargetpart', {
+	Text = 'target part',
+	Tooltip = 'can select multiple parts', -- Information shown when you hover over the toggle
+	DisabledTooltip = 'disabled', -- Information shown when you hover over the toggle while it's disabled
+
+	Default = false, -- Default value (true / false)
+	Disabled = false, -- Will disable the toggle (true / false)
+	Visible = true, -- Will make the toggle invisible (true / false)
+	Risky = false, -- Makes the text red (the color can be changed using Library.RiskColor) (Default value = false)
+
+	Callback = function(Value)
+		print('[cb] MyToggle changed to:', Value)
+	end
+}):AddDropdown('silentaimbotpart', {
+	Values = { 'head', 'uppertorso', 'lowertorso', 'humanoidrootpart', 'leftarm', 'rightarm', 'leftleg', 'rightleg'},
+	Default = 1, -- number index of the value / string
+	Multi = true, -- true / false, allows multiple choices to be selected
+
+	Text = 'target part',
+	Tooltip = 'if not closest part then uses this', -- Information shown when you hover over the dropdown
+	DisabledTooltip = 'I am disabled!', -- Information shown when you hover over the dropdown while it's disabled
+
+	Searchable = false, -- true / false, makes the dropdown searchable (great for a long list of values)
+
+	Callback = function(Value)
+		print('[cb] Dropdown got changed. New value:', Value)
+	end,
+
+	Disabled = false, -- Will disable the dropdown (true / false)
+	Visible = true, -- Will make the dropdown invisible (true / false)
+})
+Options.silentaimbotpart:OnChanged(function()
+	print('Dropdown got changed. New value:', Options.aimbotpart.Value)
+end)
+
+silentaimtab:AddToggle('silentaimshowfov', {
+	Text = 'show fov',
+	Tooltip = 'draw a fov circle', -- Information shown when you hover over the toggle
+	DisabledTooltip = 'disabled', -- Information shown when you hover over the toggle while it's disabled
+
+	Default = false, -- Default value (true / false)
+	Disabled = false, -- Will disable the toggle (true / false)
+	Visible = true, -- Will make the toggle invisible (true / false)
+	Risky = false, -- Makes the text red (the color can be changed using Library.RiskColor) (Default value = false)
+
+	Callback = function(Value)
+		print('[cb] MyToggle changed to:', Value)
+	end
+}):AddColorPicker('silentaimcolor', {
+	Default = Color3.new(1, 0, 0),
+	Title = 'fov color', -- Optional. Allows you to have a custom color picker title (when you open it)
+	Transparency = 0, -- Optional. Enables transparency changing for this color picker (leave as nil to disable)
+
+	Callback = function(Value, Transparency)
+		print('[cb] Color changed!', Value, '| Transparency changed to:', Transparency)
+	end
+})
+
+silentaimtab:AddSlider('silentaimfov', {
+	Text = 'fov radius',
+	Default = 0,
+	Min = 0,
+	Max = 200,
+	Rounding = 1,
+	Compact = true,
+
+	Callback = function(Value)
+		print('[cb] MySlider was changed! New value:', Value)
+	end,
+
+	Tooltip = 'how big to make radius', -- Information shown when you hover over the slider
+	DisabledTooltip = 'I am disabled!', -- Information shown when you hover over the slider while it's disabled
+
+	Disabled = false, -- Will disable the slider (true / false)
+	Visible = true, -- Will make the slider invisible (true / false)
+})
+
+-- Options is a table added to getgenv() by the library
+-- You index Options with the specified index, in this case it is 'MySlider'
+-- To get the value of the slider you do slider.Value
+
+Options.silentaimfov:OnChanged(function()
+	print('MySlider was changed! New value:', Options.silentaimfov.Value)
+end)
+
+silentaimtab:AddToggle('silentaimsmoothing', { Text = 'smoothing' });
+local SilentDepbox = silentaimtab:AddDependencyBox();
+
+SilentDepbox:AddSlider('silentsmoothingvalue', {
+	Text = 'smoothing value',
+	Default = 0.5,
+	Min = 0,
+	Max = 100,
+	Rounding = 0,
+	Suffix = '%',
+	
+
+	
+	Compact = true,
+	
+	FormatDisplayValue = function(slider, value)
+		if value then return tostring(value) .. '%' end
+		-- If you return nil, the default formatting will be applied
+	end,
+
+	Callback = function(Value)
+		print('[cb] MySlider was changed! New value:', Value)
+	end,
+
+	Tooltip = 'how much to smooth', -- Information shown when you hover over the slider
+	DisabledTooltip = 'I am disabled!', -- Information shown when you hover over the slider while it's disabled
+
+	Disabled = false, -- Will disable the slider (true / false)
+	Visible = true, -- Will make the slider invisible (true / false)
+})
+
+SilentDepbox:SetupDependencies({
+	{ Toggles.silentaimsmoothing, true } -- We can also pass `false` if we only want our features to show when the toggle is off!
+});
+
+-- Options is a table added to getgenv() by the library
+-- You index Options with the specified index, in this case it is 'MySlider'
+-- To get the value of the slider you do slider.Value
+
+Options.silentsmoothingvalue:OnChanged(function()
+	print('MySlider was changed! New value:', Options.silentsmoothingvalue.Value)
+end)
+
+
+
+
+silentaimtab:AddToggle('silentaimhit', { Text = 'hit chance' });
+local hitchanceDepbox = silentaimtab:AddDependencyBox();
+
+hitchanceDepbox:AddSlider('silentaimhitchance', {
+	Text = 'hit chance',
+	Default = 0.5,
+	Min = 0,
+	Max = 100,
+	Rounding = 0,
+	Suffix = '%',
+	
+
+	
+	Compact = true,
+	
+	FormatDisplayValue = function(slider, value)
+		if value then return tostring(value) .. '%' end
+		-- If you return nil, the default formatting will be applied
+	end,
+
+	Callback = function(Value)
+		print('[cb] MySlider was changed! New value:', Value)
+	end,
+
+	Tooltip = '[BOOKMARK1] EDIT LATER', -- Information shown when you hover over the slider
+	DisabledTooltip = 'I am disabled!', -- Information shown when you hover over the slider while it's disabled
+
+	Disabled = false, -- Will disable the slider (true / false)
+	Visible = true, -- Will make the slider invisible (true / false)
+})
+
+hitchanceDepbox:SetupDependencies({
+	{ Toggles.silentaimhit, true } -- We can also pass `false` if we only want our features to show when the toggle is off!
+});
+
+-- Options is a table added to getgenv() by the library
+-- You index Options with the specified index, in this case it is 'MySlider'
+-- To get the value of the slider you do slider.Value
+
+Options.silentaimhitchance:OnChanged(function()
+	print('MySlider was changed! New value:', Options.silentaimhitchance.Value)
+end)
+
+local checkstab = Tabs.Main:AddRightGroupbox('Checks')
+
+
+checkstab:AddToggle('mastercheck', {
+	Text = 'Master check',
+	Tooltip = 'if enabled, use the same checks for BOTH silent aim and aimbot \n(disabling this lets you have custom checks for each)', -- Information shown when you hover over the toggle
+	DisabledTooltip = 'I am disabled!', -- Information shown when you hover over the toggle while it's disabled
+
+	Default = true, -- Default value (true / false)
+	Disabled = false, -- Will disable the toggle (true / false)
+	Visible = true, -- Will make the toggle invisible (true / false)
+	Risky = false, -- Makes the text red (the color can be changed using Library.RiskColor) (Default value = false)
+
+	Callback = function(Value)
+		print('[cb] MyToggle changed to:', Value)
+	end
+})
+
+local mastercheck = checkstab:AddDependencyBox();
+
+mastercheck:AddToggle('visibleonly', {
+	Text = 'visible only',
+	Tooltip = 'actually on your screen', -- Information shown when you hover over the toggle
+	DisabledTooltip = 'I am disabled!', -- Information shown when you hover over the toggle while it's disabled
+
+	Default = true, -- Default value (true / false)
+	Disabled = false, -- Will disable the toggle (true / false)
+	Visible = true, -- Will make the toggle invisible (true / false)
+	Risky = false, -- Makes the text red (the color can be changed using Library.RiskColor) (Default value = false)
+
+	Callback = function(Value)
+		print('[cb] MyToggle changed to:', Value)
+	end
+})
+
+mastercheck:AddToggle('wallcheck', {
+	Text = 'wall check',
+	Tooltip = 'not target if any part is blocking you two \n(besides other players)', -- Information shown when you hover over the toggle
+	DisabledTooltip = 'I am disabled!', -- Information shown when you hover over the toggle while it's disabled
+
+	Default = true, -- Default value (true / false)
+	Disabled = false, -- Will disable the toggle (true / false)
+	Visible = true, -- Will make the toggle invisible (true / false)
+	Risky = false, -- Makes the text red (the color can be changed using Library.RiskColor) (Default value = false)
+
+	Callback = function(Value)
+		print('[cb] MyToggle changed to:', Value)
+	end
+})
+
+mastercheck:AddToggle('forcefield', {
+	Text = 'ignore forcefield',
+	Tooltip = 'not target players with forcefield', -- Information shown when you hover over the toggle
+	DisabledTooltip = 'I am disabled!', -- Information shown when you hover over the toggle while it's disabled
+
+	Default = true, -- Default value (true / false)
+	Disabled = false, -- Will disable the toggle (true / false)
+	Visible = true, -- Will make the toggle invisible (true / false)
+	Risky = false, -- Makes the text red (the color can be changed using Library.RiskColor) (Default value = false)
+
+	Callback = function(Value)
+		print('[cb] MyToggle changed to:', Value)
+	end
+})
+
+mastercheck:AddToggle('selfcrew', {
+	Text = 'whitelist self crew',
+	Tooltip = 'not target people in your crew', -- Information shown when you hover over the toggle
+	DisabledTooltip = 'I am disabled!', -- Information shown when you hover over the toggle while it's disabled
+
+	Default = true, -- Default value (true / false)
+	Disabled = false, -- Will disable the toggle (true / false)
+	Visible = true, -- Will make the toggle invisible (true / false)
+	Risky = false, -- Makes the text red (the color can be changed using Library.RiskColor) (Default value = false)
+
+	Callback = function(Value)
+		print('[cb] MyToggle changed to:', Value)
+	end
+})
+
+mastercheck:AddSlider('distance', {
+	Text = 'limit distance',
+	Default = 0,
+	Min = 0,
+	Max = 200,
+	Rounding = 1,
+	Compact = true,
+
+	Callback = function(Value)
+		print('[cb] MySlider was changed! New value:', Value)
+	end,
+
+	Tooltip = 'target players (x) studs near you', -- Information shown when you hover over the slider
+	DisabledTooltip = 'I am disabled!', -- Information shown when you hover over the slider while it's disabled
+
+	Disabled = false, -- Will disable the slider (true / false)
+	Visible = true, -- Will make the slider invisible (true / false)
+})
+Options.distance:OnChanged(function()
+	print('MySlider was changed! New value:', Options.distance.Value)
+end)
+
+mastercheck:AddDropdown('ignorecrew', {
+	Values = { 'crewname1', '[BOOKMARK1] make function to return names'},
+	Default = 1, -- number index of the value / string
+	Multi = true, -- true / false, allows multiple choices to be selected
+
+	Text = 'whitelist crews',
+	Tooltip = 'wont target people in crews you select', -- Information shown when you hover over the dropdown
+	DisabledTooltip = 'I am disabled!', -- Information shown when you hover over the dropdown while it's disabled
+
+	Searchable = false, -- true / false, makes the dropdown searchable (great for a long list of values)
+
+	Callback = function(Value)
+		print('[cb] Dropdown got changed. New value:', Value)
+	end,
+
+	Disabled = false, -- Will disable the dropdown (true / false)
+	Visible = true, -- Will make the dropdown invisible (true / false)
+})
+
+mastercheck:AddDropdown('closestpartblacklist', {
+	Values = { 'head', 'uppertorso', 'lowertorso', 'humanoidrootpart', 'leftarm', 'rightarm', 'leftleg', 'rightleg'},
+	Default = 1, -- number index of the value / string
+	Multi = true, -- true / false, allows multiple choices to be selected
+
+	Text = 'closest part blacklist',
+	Tooltip = 'if using closest part, wont target these parts', -- Information shown when you hover over the dropdown
+	DisabledTooltip = 'I am disabled!', -- Information shown when you hover over the dropdown while it's disabled
+
+	Searchable = false, -- true / false, makes the dropdown searchable (great for a long list of values)
+
+	Callback = function(Value)
+		print('[cb] Dropdown got changed. New value:', Value)
+	end,
+
+	Disabled = false, -- Will disable the dropdown (true / false)
+	Visible = true, -- Will make the dropdown invisible (true / false)
+})
+
+mastercheck:AddDropdown('MyPlayerDropdown', {
+	SpecialType = 'Player',
+	Searchable = true, -- true / false, makes the dropdown searchable (great for a long list of values)
+	ExcludeLocalPlayer = true, -- true / false, excludes the localplayer from the Player type
+	Multi = true,
+	Text = 'player whitelist',
+	Tooltip = '', -- Information shown when you hover over the dropdown
+
+	Callback = function(Value)
+		print('[cb] Player dropdown got changed:', Value)
+	end
+})
+
+mastercheck:SetupDependencies({
+	{ Toggles.mastercheck, true } -- We can also pass `false` if we only want our features to show when the toggle is off!
+});
+
+local aimbotdep = aimbottab:AddDependencyBox();
+
+aimbotdep:AddToggle('visibleonly', {
+	Text = 'visible only',
+	Tooltip = 'actually on your screen', -- Information shown when you hover over the toggle
+	DisabledTooltip = 'I am disabled!', -- Information shown when you hover over the toggle while it's disabled
+
+	Default = true, -- Default value (true / false)
+	Disabled = false, -- Will disable the toggle (true / false)
+	Visible = true, -- Will make the toggle invisible (true / false)
+	Risky = false, -- Makes the text red (the color can be changed using Library.RiskColor) (Default value = false)
+
+	Callback = function(Value)
+		print('[cb] MyToggle changed to:', Value)
+	end
+})
+
+aimbotdep:AddToggle('wallcheck', {
+	Text = 'wall check',
+	Tooltip = 'not target if any part is blocking you two \n(besides other players)', -- Information shown when you hover over the toggle
+	DisabledTooltip = 'I am disabled!', -- Information shown when you hover over the toggle while it's disabled
+
+	Default = true, -- Default value (true / false)
+	Disabled = false, -- Will disable the toggle (true / false)
+	Visible = true, -- Will make the toggle invisible (true / false)
+	Risky = false, -- Makes the text red (the color can be changed using Library.RiskColor) (Default value = false)
+
+	Callback = function(Value)
+		print('[cb] MyToggle changed to:', Value)
+	end
+})
+
+aimbotdep:AddToggle('forcefield', {
+	Text = 'ignore forcefield',
+	Tooltip = 'not target players with forcefield', -- Information shown when you hover over the toggle
+	DisabledTooltip = 'I am disabled!', -- Information shown when you hover over the toggle while it's disabled
+
+	Default = true, -- Default value (true / false)
+	Disabled = false, -- Will disable the toggle (true / false)
+	Visible = true, -- Will make the toggle invisible (true / false)
+	Risky = false, -- Makes the text red (the color can be changed using Library.RiskColor) (Default value = false)
+
+	Callback = function(Value)
+		print('[cb] MyToggle changed to:', Value)
+	end
+})
+
+aimbotdep:AddToggle('selfcrew', {
+	Text = 'whitelist self crew',
+	Tooltip = 'not target people in your crew', -- Information shown when you hover over the toggle
+	DisabledTooltip = 'I am disabled!', -- Information shown when you hover over the toggle while it's disabled
+
+	Default = true, -- Default value (true / false)
+	Disabled = false, -- Will disable the toggle (true / false)
+	Visible = true, -- Will make the toggle invisible (true / false)
+	Risky = false, -- Makes the text red (the color can be changed using Library.RiskColor) (Default value = false)
+
+	Callback = function(Value)
+		print('[cb] MyToggle changed to:', Value)
+	end
+})
+
+aimbotdep:AddSlider('distance', {
+	Text = 'limit distance',
+	Default = 0,
+	Min = 0,
+	Max = 200,
+	Rounding = 1,
+	Compact = true,
+
+	Callback = function(Value)
+		print('[cb] MySlider was changed! New value:', Value)
+	end,
+
+	Tooltip = 'target players (x) studs near you', -- Information shown when you hover over the slider
+	DisabledTooltip = 'I am disabled!', -- Information shown when you hover over the slider while it's disabled
+
+	Disabled = false, -- Will disable the slider (true / false)
+	Visible = true, -- Will make the slider invisible (true / false)
+})
+Options.distance:OnChanged(function()
+	print('MySlider was changed! New value:', Options.distance.Value)
+end)
+
+aimbotdep:AddDropdown('ignorecrew', {
+	Values = { 'crewname1', '[BOOKMARK1] make function to return names'},
+	Default = 1, -- number index of the value / string
+	Multi = true, -- true / false, allows multiple choices to be selected
+
+	Text = 'whitelist crews',
+	Tooltip = 'wont target people in crews you select', -- Information shown when you hover over the dropdown
+	DisabledTooltip = 'I am disabled!', -- Information shown when you hover over the dropdown while it's disabled
+
+	Searchable = false, -- true / false, makes the dropdown searchable (great for a long list of values)
+
+	Callback = function(Value)
+		print('[cb] Dropdown got changed. New value:', Value)
+	end,
+
+	Disabled = false, -- Will disable the dropdown (true / false)
+	Visible = true, -- Will make the dropdown invisible (true / false)
+})
+
+aimbotdep:AddDropdown('closestpartblacklist', {
+	Values = { 'head', 'uppertorso', 'lowertorso', 'humanoidrootpart', 'leftarm', 'rightarm', 'leftleg', 'rightleg'},
+	Default = 1, -- number index of the value / string
+	Multi = true, -- true / false, allows multiple choices to be selected
+
+	Text = 'closest part blacklist',
+	Tooltip = 'if using closest part, wont target these parts', -- Information shown when you hover over the dropdown
+	DisabledTooltip = 'I am disabled!', -- Information shown when you hover over the dropdown while it's disabled
+
+	Searchable = false, -- true / false, makes the dropdown searchable (great for a long list of values)
+
+	Callback = function(Value)
+		print('[cb] Dropdown got changed. New value:', Value)
+	end,
+
+	Disabled = false, -- Will disable the dropdown (true / false)
+	Visible = true, -- Will make the dropdown invisible (true / false)
+})
+
+aimbotdep:AddDropdown('MyPlayerDropdown', {
+	SpecialType = 'Player',
+	Multi = true,
+	Searchable = true, -- true / false, makes the dropdown searchable (great for a long list of values)
+	ExcludeLocalPlayer = true, -- true / false, excludes the localplayer from the Player type
+	Text = 'player whitelist',
+	Tooltip = '', -- Information shown when you hover over the dropdown
+
+	Callback = function(Value)
+		print('[cb] Player dropdown got changed:', Value)
+	end
+})
+
+aimbotdep:SetupDependencies({
+	{ Toggles.mastercheck, false } -- We can also pass `false` if we only want our features to show when the toggle is off!
+});
+
+
+
+
+
+local silentaimdep = silentaimtab:AddDependencyBox();
+
+silentaimdep:AddToggle('visibleonly', {
+	Text = 'visible only',
+	Tooltip = 'actually on your screen', -- Information shown when you hover over the toggle
+	DisabledTooltip = 'I am disabled!', -- Information shown when you hover over the toggle while it's disabled
+
+	Default = true, -- Default value (true / false)
+	Disabled = false, -- Will disable the toggle (true / false)
+	Visible = true, -- Will make the toggle invisible (true / false)
+	Risky = false, -- Makes the text red (the color can be changed using Library.RiskColor) (Default value = false)
+
+	Callback = function(Value)
+		print('[cb] MyToggle changed to:', Value)
+	end
+})
+
+silentaimdep:AddToggle('wallcheck', {
+	Text = 'wall check',
+	Tooltip = 'not target if any part is blocking you two \n(besides other players)', -- Information shown when you hover over the toggle
+	DisabledTooltip = 'I am disabled!', -- Information shown when you hover over the toggle while it's disabled
+
+	Default = true, -- Default value (true / false)
+	Disabled = false, -- Will disable the toggle (true / false)
+	Visible = true, -- Will make the toggle invisible (true / false)
+	Risky = false, -- Makes the text red (the color can be changed using Library.RiskColor) (Default value = false)
+
+	Callback = function(Value)
+		print('[cb] MyToggle changed to:', Value)
+	end
+})
+
+silentaimdep:AddToggle('forcefield', {
+	Text = 'ignore forcefield',
+	Tooltip = 'not target players with forcefield', -- Information shown when you hover over the toggle
+	DisabledTooltip = 'I am disabled!', -- Information shown when you hover over the toggle while it's disabled
+
+	Default = true, -- Default value (true / false)
+	Disabled = false, -- Will disable the toggle (true / false)
+	Visible = true, -- Will make the toggle invisible (true / false)
+	Risky = false, -- Makes the text red (the color can be changed using Library.RiskColor) (Default value = false)
+
+	Callback = function(Value)
+		print('[cb] MyToggle changed to:', Value)
+	end
+})
+
+silentaimdep:AddToggle('selfcrew', {
+	Text = 'whitelist self crew',
+	Tooltip = 'not target people in your crew', -- Information shown when you hover over the toggle
+	DisabledTooltip = 'I am disabled!', -- Information shown when you hover over the toggle while it's disabled
+
+	Default = true, -- Default value (true / false)
+	Disabled = false, -- Will disable the toggle (true / false)
+	Visible = true, -- Will make the toggle invisible (true / false)
+	Risky = false, -- Makes the text red (the color can be changed using Library.RiskColor) (Default value = false)
+
+	Callback = function(Value)
+		print('[cb] MyToggle changed to:', Value)
+	end
+})
+
+silentaimdep:AddSlider('distance', {
+	Text = 'limit distance',
+	Default = 0,
+	Min = 0,
+	Max = 200,
+	Rounding = 1,
+	Compact = true,
+
+	Callback = function(Value)
+		print('[cb] MySlider was changed! New value:', Value)
+	end,
+
+	Tooltip = 'target players (x) studs near you', -- Information shown when you hover over the slider
+	DisabledTooltip = 'I am disabled!', -- Information shown when you hover over the slider while it's disabled
+
+	Disabled = false, -- Will disable the slider (true / false)
+	Visible = true, -- Will make the slider invisible (true / false)
+})
+Options.distance:OnChanged(function()
+	print('MySlider was changed! New value:', Options.distance.Value)
+end)
+
+silentaimdep:AddDropdown('ignorecrew', {
+	Values = { 'crewname1', '[BOOKMARK1] make function to return names'},
+	Default = 1, -- number index of the value / string
+	Multi = true, -- true / false, allows multiple choices to be selected
+
+	Text = 'whitelist crews',
+	Tooltip = 'wont target people in crews you select', -- Information shown when you hover over the dropdown
+	DisabledTooltip = 'I am disabled!', -- Information shown when you hover over the dropdown while it's disabled
+
+	Searchable = false, -- true / false, makes the dropdown searchable (great for a long list of values)
+
+	Callback = function(Value)
+		print('[cb] Dropdown got changed. New value:', Value)
+	end,
+
+	Disabled = false, -- Will disable the dropdown (true / false)
+	Visible = true, -- Will make the dropdown invisible (true / false)
+})
+
+silentaimdep:AddDropdown('closestpartblacklist', {
+	Values = { 'head', 'uppertorso', 'lowertorso', 'humanoidrootpart', 'leftarm', 'rightarm', 'leftleg', 'rightleg'},
+	Default = 1, -- number index of the value / string
+	Multi = true, -- true / false, allows multiple choices to be selected
+
+	Text = 'closest part blacklist',
+	Tooltip = 'if using closest part, wont target these parts', -- Information shown when you hover over the dropdown
+	DisabledTooltip = 'I am disabled!', -- Information shown when you hover over the dropdown while it's disabled
+
+	Searchable = false, -- true / false, makes the dropdown searchable (great for a long list of values)
+
+	Callback = function(Value)
+		print('[cb] Dropdown got changed. New value:', Value)
+	end,
+
+	Disabled = false, -- Will disable the dropdown (true / false)
+	Visible = true, -- Will make the dropdown invisible (true / false)
+})
+
+silentaimdep:AddDropdown('MyPlayerDropdown', {
+	SpecialType = 'Player',
+	Multi = true,
+	Searchable = true, -- true / false, makes the dropdown searchable (great for a long list of values)
+	ExcludeLocalPlayer = true, -- true / false, excludes the localplayer from the Player type
+	Text = 'player whitelist',
+	Tooltip = '', -- Information shown when you hover over the dropdown
+
+	Callback = function(Value)
+		print('[cb] Player dropdown got changed:', Value)
+	end
+})
+
+silentaimdep:SetupDependencies({
+	{ Toggles.mastercheck, false } -- We can also pass `false` if we only want our features to show when the toggle is off!
+});
+
+
+
+
+
+local ragebottab = Tabs.Main:AddLeftGroupbox('ragebot')
+
+ragebottab:AddToggle('rageboteanble', {
+	Text = 'enable',
+	Tooltip = 'enable ragebot', -- Information shown when you hover over the toggle
+	DisabledTooltip = 'disabled', -- Information shown when you hover over the toggle while it's disabled
+
+	Default = false, -- Default value (true / false)
+	Disabled = false, -- Will disable the toggle (true / false)
+	Visible = true, -- Will make the toggle invisible (true / false)
+	Risky = false, -- Makes the text red (the color can be changed using Library.RiskColor) (Default value = false)
+
+	Callback = function(Value)
+		print('[cb] MyToggle changed to:', Value)
+	end
+}):AddKeyPicker('aimbotkeybind', {
+	-- SyncToggleState only works with toggles.
+	-- It allows you to make a keybind which has its state synced with its parent toggle
+
+	-- Example: Keybind which you use to toggle flyhack, etc.
+	-- Changing the toggle disables the keybind state and toggling the keybind switches the toggle state
+
+	Default = '', -- String as the name of the keybind (MB1, MB2 for mouse buttons)
+	SyncToggleState = true,
+
+
+	-- You can define custom Modes but I have never had a use for it.
+	Mode = 'Toggle', -- Modes: Always, Toggle, Hold, Press (example down below)
+
+	Text = 'ragebot', -- Text to display in the keybind menu
+	NoUI = false, -- Set to true if you want to hide from the Keybind menu,
+
+	-- Occurs when the keybind is clicked, Value is `true`/`false`
+	Callback = function(Value)
+		print('[cb] Keybind clicked!', Value)
+	end,
+
+	-- Occurs when the keybind itself is changed, `New` is a KeyCode Enum OR a UserInputType Enum
+	ChangedCallback = function(New)
+		print('[cb] Keybind changed!', New)
+	end
+})
+
+ragebottab:AddToggle('ragetargets', {
+	Text = 'select targets',
+	Tooltip = 'choose people instead of everyone', -- Information shown when you hover over the toggle
+	DisabledTooltip = 'disabled', -- Information shown when you hover over the toggle while it's disabled
+
+	Default = true, -- Default value (true / false)
+	Disabled = false, -- Will disable the toggle (true / false)
+	Visible = true, -- Will make the toggle invisible (true / false)
+	Risky = false, -- Makes the text red (the color can be changed using Library.RiskColor) (Default value = false)
+
+	Callback = function(Value)
+		print('[cb] MyToggle changed to:', Value)
+	end
+})
+
+local target = ragebottab:AddDependencyBox();
+target:AddDropdown('targets', {
+	SpecialType = 'Player',
+	Searchable = true, -- true / false, makes the dropdown searchable (great for a long list of values)
+	ExcludeLocalPlayer = true, -- true / false, excludes the localplayer from the Player type
+	Multi = true,
+	Text = 'target players',
+	Tooltip = '', -- Information shown when you hover over the dropdown
+
+	Callback = function(Value)
+		print('[cb] Player dropdown got changed:', Value)
+	end
+})
+
+local whitelist = ragebottab:AddDependencyBox();
+whitelist:AddDropdown('whitelistragebot', {
+	SpecialType = 'Player',
+	Searchable = true, -- true / false, makes the dropdown searchable (great for a long list of values)
+	ExcludeLocalPlayer = true, -- true / false, excludes the localplayer from the Player type
+	Multi = true,
+	Text = 'whitelist players',
+	Tooltip = 'if not select targets,\nwe still dont target these people', -- Information shown when you hover over the dropdown
+
+	Callback = function(Value)
+		print('[cb] Player dropdown got changed:', Value)
+	end
+})
+
+target:SetupDependencies({
+	{ Toggles.ragetargets, true } -- We can also pass `false` if we only want our features to show when the toggle is off!
+});
+whitelist:SetupDependencies({
+	{ Toggles.ragetargets, false } -- We can also pass `false` if we only want our features to show when the toggle is off!
+});
+
+
+ragebottab:AddToggle('viewtarget', {
+	Text = 'view target',
+	Tooltip = 'spectate the target until dead', -- Information shown when you hover over the toggle
+	DisabledTooltip = 'disabled', -- Information shown when you hover over the toggle while it's disabled
+
+	Default = true, -- Default value (true / false)
+	Disabled = false, -- Will disable the toggle (true / false)
+	Visible = true, -- Will make the toggle invisible (true / false)
+	Risky = false, -- Makes the text red (the color can be changed using Library.RiskColor) (Default value = false)
+
+	Callback = function(Value)
+		print('[cb] MyToggle changed to:', Value)
+	end
+})
+
+ragebottab:AddToggle('stomptarget', {
+	Text = 'stomp target',
+	Tooltip = 'stomp target if KOd', -- Information shown when you hover over the toggle
+	DisabledTooltip = 'disabled', -- Information shown when you hover over the toggle while it's disabled
+
+	Default = true, -- Default value (true / false)
+	Disabled = false, -- Will disable the toggle (true / false)
+	Visible = true, -- Will make the toggle invisible (true / false)
+	Risky = false, -- Makes the text red (the color can be changed using Library.RiskColor) (Default value = false)
+
+	Callback = function(Value)
+		print('[cb] MyToggle changed to:', Value)
+	end
+})
+
+ragebottab:AddToggle('strafe', {
+	Text = 'strafe around target',
+	Tooltip = 'if enabled, you can make custom movement', -- Information shown when you hover over the toggle
+	DisabledTooltip = 'disabled', -- Information shown when you hover over the toggle while it's disabled
+
+	Default = true, -- Default value (true / false)
+	Disabled = false, -- Will disable the toggle (true / false)
+	Visible = true, -- Will make the toggle invisible (true / false)
+	Risky = false, -- Makes the text red (the color can be changed using Library.RiskColor) (Default value = false)
+
+	Callback = function(Value)
+		print('[cb] MyToggle changed to:', Value)
+	end
+})
+
+ragebottab:AddToggle('ylevelmatch', {
+	Text = 'match y level',
+	Tooltip = 'always be same height as target', -- Information shown when you hover over the toggle
+	DisabledTooltip = 'disabled', -- Information shown when you hover over the toggle while it's disabled
+
+	Default = true, -- Default value (true / false)
+	Disabled = false, -- Will disable the toggle (true / false)
+	Visible = true, -- Will make the toggle invisible (true / false)
+	Risky = false, -- Makes the text red (the color can be changed using Library.RiskColor) (Default value = false)
+
+	Callback = function(Value)
+		print('[cb] MyToggle changed to:', Value)
+	end
+})
+
+local movementdep = ragebottab:AddDependencyBox();
+
+movementdep:AddToggle('predictmovement', {
+	Text = 'predict movement',
+	Tooltip = 'applies movement settings to targets estimated position', -- Information shown when you hover over the toggle
+	DisabledTooltip = 'disabled', -- Information shown when you hover over the toggle while it's disabled
+
+	Default = true, -- Default value (true / false)
+	Disabled = false, -- Will disable the toggle (true / false)
+	Visible = true, -- Will make the toggle invisible (true / false)
+	Risky = false, -- Makes the text red (the color can be changed using Library.RiskColor) (Default value = false)
+
+	Callback = function(Value)
+		print('[cb] MyToggle changed to:', Value)
+	end
+})
+
+
+movementdep:AddDivider()
+
+
+movementdep:SetupDependencies({
+	{ Toggles.strafe, true } -- We can also pass `false` if we only want our features to show when the toggle is off!
+});
+
+movementdep:AddToggle('randomstrafe', {
+	Text = 'use random movement',
+	Tooltip = '(instead of moving in a circle)', -- Information shown when you hover over the toggle
+	DisabledTooltip = 'disabled', -- Information shown when you hover over the toggle while it's disabled
+
+	Default = true, -- Default value (true / false)
+	Disabled = false, -- Will disable the toggle (true / false)
+	Visible = true, -- Will make the toggle invisible (true / false)
+	Risky = false, -- Makes the text red (the color can be changed using Library.RiskColor) (Default value = false)
+
+	Callback = function(Value)
+		print('[cb] MyToggle changed to:', Value)
+	end
+})
+
+
+local submovementdep = movementdep:AddDependencyBox();
+local othermovementdep = movementdep:AddDependencyBox();
+submovementdep:SetupDependencies({
+	{ Toggles.randomstrafe, false } -- We can also pass `false` if we only want our features to show when the toggle is off!
+});
+submovementdep:AddSlider('strafespeed', {
+	Text = 'strafe speed',
+	Default = 0,
+	Min = 0,
+	Max = 200,
+	BlankSize = 5,
+	Rounding = 1,
+	Compact = true,
+
+	Callback = function(Value)
+		print('[cb] MySlider was changed! New value:', Value)
+	end,
+
+	Tooltip = 'how big to make radius', -- Information shown when you hover over the slider
+	DisabledTooltip = 'I am disabled!', -- Information shown when you hover over the slider while it's disabled
+
+	Disabled = false, -- Will disable the slider (true / false)
+	Visible = true, -- Will make the slider invisible (true / false)
+})
+
+submovementdep:AddSlider('strafex', {
+	Text = 'strafe radius',
+	Default = 0,
+	Min = 0,
+	Max = 200,
+	BlankSize = 5,
+	Rounding = 1,
+	Compact = true,
+
+	Callback = function(Value)
+		print('[cb] MySlider was changed! New value:', Value)
+	end,
+
+	Tooltip = 'how far from player in width', -- Information shown when you hover over the slider
+	DisabledTooltip = 'I am disabled!', -- Information shown when you hover over the slider while it's disabled
+
+	Disabled = false, -- Will disable the slider (true / false)
+	Visible = true, -- Will make the slider invisible (true / false)
+})
+
+submovementdep:AddSlider('strafey', {
+	Text = 'strafe height',
+	Default = 0,
+	Min = 0,
+	Max = 200,
+	BlankSize = 5,
+	Rounding = 1,
+	Compact = true,
+
+	Callback = function(Value)
+		print('[cb] MySlider was changed! New value:', Value)
+	end,
+
+	Tooltip = 'how far from player in height', -- Information shown when you hover over the slider
+	DisabledTooltip = 'I am disabled!', -- Information shown when you hover over the slider while it's disabled
+
+	Disabled = false, -- Will disable the slider (true / false)
+	Visible = true, -- Will make the slider invisible (true / false)
+})
+
+othermovementdep:AddSlider('strafexmin', {
+	Text = 'minimum radius',
+	Default = 0,
+	Min = 0,
+	Max = 200,
+	BlankSize = 5,
+	Rounding = 1,
+	Compact = true,
+
+	Callback = function(Value)
+		print('[cb] MySlider was changed! New value:', Value)
+	end,
+
+	Tooltip = '', -- Information shown when you hover over the slider
+	DisabledTooltip = 'I am disabled!', -- Information shown when you hover over the slider while it's disabled
+
+	Disabled = false, -- Will disable the slider (true / false)
+	Visible = true, -- Will make the slider invisible (true / false)
+})
+
+othermovementdep:AddSlider('strafexmin', {
+	Text = 'maximum radius',
+	Default = 0,
+	Min = 0,
+	Max = 200,
+	BlankSize = 5,
+	Rounding = 1,
+	Compact = true,
+
+	Callback = function(Value)
+		print('[cb] MySlider was changed! New value:', Value)
+	end,
+
+	Tooltip = '', -- Information shown when you hover over the slider
+	DisabledTooltip = 'I am disabled!', -- Information shown when you hover over the slider while it's disabled
+
+	Disabled = false, -- Will disable the slider (true / false)
+	Visible = true, -- Will make the slider invisible (true / false)
+})
+
+othermovementdep:SetupDependencies({
+	{ Toggles.randomstrafe, true } -- We can also pass `false` if we only want our features to show when the toggle is off!
+});
+
+ragebottab:AddDivider()
+
+ragebottab:AddLabel('idk if i can use more than 1 weapon\ni will see when they make the\n0 delay update ig\n', true)
+ragebottab:AddDropdown('weaponuse', {
+	Values = { 'db', '[BOOKMARK1] make function to return weapons'},
+	Default = 1, -- number index of the value / string
+	Multi = true, -- true / false, allows multiple choices to be selected
+
+	Text = 'use weapon',
+	Tooltip = 'what weapon/s to use', -- Information shown when you hover over the dropdown
+	DisabledTooltip = 'I am disabled!', -- Information shown when you hover over the dropdown while it's disabled
+
+	Searchable = false, -- true / false, makes the dropdown searchable (great for a long list of values)
+
+	Callback = function(Value)
+		print('[cb] Dropdown got changed. New value:', Value)
+	end,
+
+	Disabled = false, -- Will disable the dropdown (true / false)
+	Visible = true, -- Will make the dropdown invisible (true / false)
+})
+
+local gunexps = Tabs.Main:AddRightGroupbox('gun exploits')
+gunexps:AddToggle('infinitebullets', {
+	Text = 'infinite bullets',
+	Tooltip = 'enable infinite bullets [BUGGY]\n atleast right now its buggy😊', -- Information shown when you hover over the toggle
+	DisabledTooltip = 'disabled', -- Information shown when you hover over the toggle while it's disabled
+
+	Default = false, -- Default value (true / false)
+	Disabled = false, -- Will disable the toggle (true / false)
+	Visible = true, -- Will make the toggle invisible (true / false)
+	Risky = true, -- Makes the text red (the color can be changed using Library.RiskColor) (Default value = false)
+
+	Callback = function(Value)
+		print('[cb] MyToggle changed to:', Value)
+	end
+}):AddKeyPicker('infintebulletskeybind', {
+	-- SyncToggleState only works with toggles.
+	-- It allows you to make a keybind which has its state synced with its parent toggle
+
+	-- Example: Keybind which you use to toggle flyhack, etc.
+	-- Changing the toggle disables the keybind state and toggling the keybind switches the toggle state
+
+	Default = '', -- String as the name of the keybind (MB1, MB2 for mouse buttons)
+	SyncToggleState = true,
+
+
+	-- You can define custom Modes but I have never had a use for it.
+	Mode = 'Toggle', -- Modes: Always, Toggle, Hold, Press (example down below)
+
+	Text = 'infinite bullets', -- Text to display in the keybind menu
+	NoUI = false, -- Set to true if you want to hide from the Keybind menu,
+
+	-- Occurs when the keybind is clicked, Value is `true`/`false`
+	Callback = function(Value)
+		print('[cb] Keybind clicked!', Value)
+	end,
+
+	-- Occurs when the keybind itself is changed, `New` is a KeyCode Enum OR a UserInputType Enum
+	ChangedCallback = function(New)
+		print('[cb] Keybind changed!', New)
+	end
+})
+
+gunexps:AddToggle('autoreload', {
+	Text = 'auto reload',
+	Tooltip = 'reload when out of ammo', -- Information shown when you hover over the toggle
+	DisabledTooltip = 'disabled', -- Information shown when you hover over the toggle while it's disabled
+
+	Default = false, -- Default value (true / false)
+	Disabled = false, -- Will disable the toggle (true / false)
+	Visible = true, -- Will make the toggle invisible (true / false)
+	Risky = false, -- Makes the text red (the color can be changed using Library.RiskColor) (Default value = false)
+
+	Callback = function(Value)
+		print('[cb] MyToggle changed to:', Value)
+	end
+})
+
+gunexps:AddToggle('gunanims', {
+	Text = 'no animations',
+	Tooltip = 'play no animations when shooting,reloading,etc', -- Information shown when you hover over the toggle
+	DisabledTooltip = 'disabled', -- Information shown when you hover over the toggle while it's disabled
+
+	Default = false, -- Default value (true / false)
+	Disabled = false, -- Will disable the toggle (true / false)
+	Visible = true, -- Will make the toggle invisible (true / false)
+	Risky = false, -- Makes the text red (the color can be changed using Library.RiskColor) (Default value = false)
+
+	Callback = function(Value)
+		print('[cb] MyToggle changed to:', Value)
+	end
+})
+
+
+local playercontroller = Tabs.Main:AddRightTabbox() 
+local pctoggles = playercontroller:AddTab('PlayerController')
+local pcsettings = playercontroller:AddTab('settings [PC]')
+
+pctoggles:AddToggle('pcenable', {
+	Text = 'enable player controller',
+	Tooltip = 'some shitty player controlled i made\nthat ill start working on again\n[MIGHT BE BAD FOR FPS]', -- Information shown when you hover over the toggle
+	DisabledTooltip = 'disabled', -- Information shown when you hover over the toggle while it's disabled
+
+	Default = false, -- Default value (true / false)
+	Disabled = false, -- Will disable the toggle (true / false)
+	Visible = true, -- Will make the toggle invisible (true / false)
+	Risky = false, -- Makes the text red (the color can be changed using Library.RiskColor) (Default value = false)
+
+	Callback = function(Value)
+		print('[cb] MyToggle changed to:', Value)
+	end
+}):AddKeyPicker('pcenablekeybind', {
+	-- SyncToggleState only works with toggles.
+	-- It allows you to make a keybind which has its state synced with its parent toggle
+
+	-- Example: Keybind which you use to toggle flyhack, etc.
+	-- Changing the toggle disables the keybind state and toggling the keybind switches the toggle state
+
+	Default = '', -- String as the name of the keybind (MB1, MB2 for mouse buttons)
+	SyncToggleState = false,
+
+
+	-- You can define custom Modes but I have never had a use for it.
+	Mode = 'Toggle', -- Modes: Always, Toggle, Hold, Press (example down below)
+
+	Text = '[PC] enabled', -- Text to display in the keybind menu
+	NoUI = false, -- Set to true if you want to hide from the Keybind menu,
+
+	-- Occurs when the keybind is clicked, Value is `true`/`false`
+	Callback = function(Value)
+		print('[cb] Keybind clicked!', Value)
+	end,
+
+	-- Occurs when the keybind itself is changed, `New` is a KeyCode Enum OR a UserInputType Enum
+	ChangedCallback = function(New)
+		print('[cb] Keybind changed!', New)
+	end
+})
+
+pctoggles:AddToggle('pcmouseenable', {
+	Text = 'use mouse',
+	Tooltip = 'control player with mouse', -- Information shown when you hover over the toggle
+	DisabledTooltip = 'disabled', -- Information shown when you hover over the toggle while it's disabled
+
+	Default = false, -- Default value (true / false)
+	Disabled = false, -- Will disable the toggle (true / false)
+	Visible = true, -- Will make the toggle invisible (true / false)
+	Risky = false, -- Makes the text red (the color can be changed using Library.RiskColor) (Default value = false)
+
+	Callback = function(Value)
+		print('[cb] MyToggle changed to:', Value)
+	end
+}):AddKeyPicker('pcmousekeybind', {
+	-- SyncToggleState only works with toggles.
+	-- It allows you to make a keybind which has its state synced with its parent toggle
+
+	-- Example: Keybind which you use to toggle flyhack, etc.
+	-- Changing the toggle disables the keybind state and toggling the keybind switches the toggle state
+
+	Default = '', -- String as the name of the keybind (MB1, MB2 for mouse buttons)
+	SyncToggleState = true,
+
+
+	-- You can define custom Modes but I have never had a use for it.
+	Mode = 'Toggle', -- Modes: Always, Toggle, Hold, Press (example down below)
+
+	Text = '[PC] mouse controlling', -- Text to display in the keybind menu
+	NoUI = false, -- Set to true if you want to hide from the Keybind menu,
+
+	-- Occurs when the keybind is clicked, Value is `true`/`false`
+	Callback = function(Value)
+		print('[cb] Keybind clicked!', Value)
+	end,
+
+	-- Occurs when the keybind itself is changed, `New` is a KeyCode Enum OR a UserInputType Enum
+	ChangedCallback = function(New)
+		print('[cb] Keybind changed!', New)
+	end
+})
+
+pctoggles:AddToggle('pccustomenable', {
+	Text = 'custom mode',
+	Tooltip = 'create a custom control\nfor example; can make them orbit you', -- Information shown when you hover over the toggle
+	DisabledTooltip = 'disabled', -- Information shown when you hover over the toggle while it's disabled
+
+	Default = false, -- Default value (true / false)
+	Disabled = false, -- Will disable the toggle (true / false)
+	Visible = true, -- Will make the toggle invisible (true / false)
+	Risky = false, -- Makes the text red (the color can be changed using Library.RiskColor) (Default value = false)
+
+	Callback = function(Value)
+		print('[cb] MyToggle changed to:', Value)
+	end
+}):AddKeyPicker('pcmodekeybind', {
+	-- SyncToggleState only works with toggles.
+	-- It allows you to make a keybind which has its state synced with its parent toggle
+
+	-- Example: Keybind which you use to toggle flyhack, etc.
+	-- Changing the toggle disables the keybind state and toggling the keybind switches the toggle state
+
+	Default = '', -- String as the name of the keybind (MB1, MB2 for mouse buttons)
+	SyncToggleState = true,
+
+
+	-- You can define custom Modes but I have never had a use for it.
+	Mode = 'Toggle', -- Modes: Always, Toggle, Hold, Press (example down below)
+
+	Text = '[PC] mode controlling', -- Text to display in the keybind menu
+	NoUI = false, -- Set to true if you want to hide from the Keybind menu,
+
+	-- Occurs when the keybind is clicked, Value is `true`/`false`
+	Callback = function(Value)
+		print('[cb] Keybind clicked!', Value)
+	end,
+
+	-- Occurs when the keybind itself is changed, `New` is a KeyCode Enum OR a UserInputType Enum
+	ChangedCallback = function(New)
+		print('[cb] Keybind changed!', New)
+	end
+})
+
+pctoggles:AddToggle('pcautopickup', {
+	Text = 'auto select',
+	Tooltip = 'due to the method of this,\nwe have to actually "select" players\n (go over them while theyre knocked)\nthis just tps to players (customize settings)\nand does that for us', -- Information shown when you hover over the toggle
+	DisabledTooltip = 'disabled', -- Information shown when you hover over the toggle while it's disabled
+
+	Default = false, -- Default value (true / false)
+	Disabled = false, -- Will disable the toggle (true / false)
+	Visible = true, -- Will make the toggle invisible (true / false)
+	Risky = false, -- Makes the text red (the color can be changed using Library.RiskColor) (Default value = false)
+
+	Callback = function(Value)
+		print('[cb] MyToggle changed to:', Value)
+	end
+}):AddKeyPicker('pcautokeybind', {
+	-- SyncToggleState only works with toggles.
+	-- It allows you to make a keybind which has its state synced with its parent toggle
+
+	-- Example: Keybind which you use to toggle flyhack, etc.
+	-- Changing the toggle disables the keybind state and toggling the keybind switches the toggle state
+
+	Default = '', -- String as the name of the keybind (MB1, MB2 for mouse buttons)
+	SyncToggleState = false,
+
+	-- You can define custom Modes but I have never had a use for it.
+	Mode = 'Toggle', -- Modes: Always, Toggle, Hold, Press (example down below)
+
+	Text = '[PC] auto select', -- Text to display in the keybind menu
+	NoUI = false, -- Set to true if you want to hide from the Keybind menu,
+
+	-- Occurs when the keybind is clicked, Value is `true`/`false`
+	Callback = function(Value)
+		print('[cb] Keybind clicked!', Value)
+	end,
+
+	-- Occurs when the keybind itself is changed, `New` is a KeyCode Enum OR a UserInputType Enum
+	ChangedCallback = function(New)
+		print('[cb] Keybind changed!', New)
+	end
+})
+
+local pcdep1 = pcsettings:AddDependencyBox();
+
+pcdep1:SetupDependencies({
+	{ Toggles.pcautopickup, false } -- We can also pass `false` if we only want our features to show when the toggle is off!
+});
+
+pcdep1:AddLabel('auto select settings wont be shown\nunless its actually enabled', true)
+pcdep1:AddDivider()
+local pcdep2 = pcsettings:AddDependencyBox();
+pcdep2:SetupDependencies({
+	{ Toggles.pcautopickup, true } -- We can also pass `false` if we only want our features to show when the toggle is off!
+});
+
+pcdep2:AddToggle('pctargetmode', {
+	Text = 'target mode',
+	Tooltip = 'targets the players selected', -- Information shown when you hover over the toggle
+	DisabledTooltip = 'disabled', -- Information shown when you hover over the toggle while it's disabled
+
+	Default = false, -- Default value (true / false)
+	Disabled = false, -- Will disable the toggle (true / false)
+	Visible = true, -- Will make the toggle invisible (true / false)
+	Risky = false, -- Makes the text red (the color can be changed using Library.RiskColor) (Default value = false)
+
+	Callback = function(Value)
+		print('[cb] MyToggle changed to:', Value)
+	end
+})
+
+pcdep2:AddToggle('pcwhitelistmode', {
+	Text = 'whitelist mode',
+	Tooltip = 'whitelists the players selected\n(targets everyone besides them)', -- Information shown when you hover over the toggle
+	DisabledTooltip = 'disabled', -- Information shown when you hover over the toggle while it's disabled
+
+	Default = false, -- Default value (true / false)
+	Disabled = false, -- Will disable the toggle (true / false)
+	Visible = true, -- Will make the toggle invisible (true / false)
+	Risky = false, -- Makes the text red (the color can be changed using Library.RiskColor) (Default value = false)
+
+	Callback = function(Value)
+		print('[cb] MyToggle changed to:', Value)
+	end
+})
+
+pcdep2:AddDropdown('MyPlayerDropdown', {
+	SpecialType = 'Player',
+	ExcludeLocalPlayer = true, -- true / false, excludes the localplayer from the Player type
+	Text = 'player selection',
+	Multi = true,
+	Tooltip = '', -- Information shown when you hover over the dropdown
+
+	Callback = function(Value)
+		print('[cb] Player dropdown got changed:', Value)
+	end
+})
+
+pcdep2:AddSlider('targetradius', {
+	Text = 'target radius',
+	Default = 0,
+	Min = 0,
+	Max = 200,
+	BlankSize = 5,
+	Rounding = 1,
+	Suffix = ' studs',
+	Compact = true,
+
+	Callback = function(Value)
+		print('[cb] MySlider was changed! New value:', Value)
+	end,
+
+	Tooltip = 'only gets players within (x) distance', -- Information shown when you hover over the slider
+	DisabledTooltip = 'I am disabled!', -- Information shown when you hover over the slider while it's disabled
+
+	Disabled = false, -- Will disable the slider (true / false)
+	Visible = true, -- Will make the slider invisible (true / false)
+})
+
+pcdep2:AddDivider()
+
+pcsettings:AddToggle('mode1pc', {
+	Text = 'mode 1',
+	Tooltip = '[BOOKMARK 1] finish and add more modes', -- Information shown when you hover over the toggle
+	DisabledTooltip = 'disabled', -- Information shown when you hover over the toggle while it's disabled
+
+	Default = false, -- Default value (true / false)
+	Disabled = false, -- Will disable the toggle (true / false)
+	Visible = true, -- Will make the toggle invisible (true / false)
+	Risky = false, -- Makes the text red (the color can be changed using Library.RiskColor) (Default value = false)
+
+	Callback = function(Value)
+		print('[cb] MyToggle changed to:', Value)
+	end
+})
+
+local movementtab = Tabs.Character:AddLeftGroupbox('movement')
+
+movementtab:AddToggle('speedenable', {
+	Text = 'enable speed',
+	Tooltip = '', -- Information shown when you hover over the toggle
+	DisabledTooltip = 'disabled', -- Information shown when you hover over the toggle while it's disabled
+
+	Default = false, -- Default value (true / false)
+	Disabled = false, -- Will disable the toggle (true / false)
+	Visible = true, -- Will make the toggle invisible (true / false)
+	Risky = false, -- Makes the text red (the color can be changed using Library.RiskColor) (Default value = false)
+
+	Callback = function(Value)
+		print('[cb] MyToggle changed to:', Value)
+	end
+}):AddKeyPicker('speedkeybind', {
+	-- SyncToggleState only works with toggles.
+	-- It allows you to make a keybind which has its state synced with its parent toggle
+
+	-- Example: Keybind which you use to toggle flyhack, etc.
+	-- Changing the toggle disables the keybind state and toggling the keybind switches the toggle state
+
+	Default = '', -- String as the name of the keybind (MB1, MB2 for mouse buttons)
+	SyncToggleState = true,
+
+
+	-- You can define custom Modes but I have never had a use for it.
+	Mode = 'Toggle',
+
+	Text = 'speeding',
+	NoUI = true, -- Set to true if you want to hide from the Keybind menu,
+
+	-- Occurs when the keybind is clicked, Value is `true`/`false`
+	Callback = function(Value)
+		print('[cb] Keybind clicked!', Value)
+	end,
+
+	-- Occurs when the keybind itself is changed, `New` is a KeyCode Enum OR a UserInputType Enum
+	ChangedCallback = function(New)
+		print('[cb] Keybind changed!', New)
+	end
+})
+
+local movementdepbox = movementtab:AddDependencyBox();
+movementdepbox:SetupDependencies({
+	{ Toggles.speedenable, true } -- We can also pass `false` if we only want our features to show when the toggle is off!
+});
+
+movementdepbox:AddToggle('velocityenable', {
+	Text = 'use velocity',
+	Tooltip = '', -- Information shown when you hover over the toggle
+	DisabledTooltip = 'disabled', -- Information shown when you hover over the toggle while it's disabled
+
+	Default = false, -- Default value (true / false)
+	Disabled = false, -- Will disable the toggle (true / false)
+	Visible = true, -- Will make the toggle invisible (true / false)
+	Risky = false, -- Makes the text red (the color can be changed using Library.RiskColor) (Default value = false)
+
+	Callback = function(Value)
+		print('[cb] MyToggle changed to:', Value)
+	end
+}):AddKeyPicker('velocitykeybind', {
+	-- SyncToggleState only works with toggles.
+	-- It allows you to make a keybind which has its state synced with its parent toggle
+
+	-- Example: Keybind which you use to toggle flyhack, etc.
+	-- Changing the toggle disables the keybind state and toggling the keybind switches the toggle state
+
+	Default = '', -- String as the name of the keybind (MB1, MB2 for mouse buttons)
+	SyncToggleState = false,
+
+
+	-- You can define custom Modes but I have never had a use for it.
+	Mode = 'Toggle',
+
+	Text = 'velocity', -- Text to display in the keybind menu
+	NoUI = false, -- Set to true if you want to hide from the Keybind menu,
+
+	-- Occurs when the keybind is clicked, Value is `true`/`false`
+	Callback = function(Value)
+		print('[cb] Keybind clicked!', Value)
+	end,
+
+	-- Occurs when the keybind itself is changed, `New` is a KeyCode Enum OR a UserInputType Enum
+	ChangedCallback = function(New)
+		print('[cb] Keybind changed!', New)
+	end
+})
+
+local veldepbox = movementdepbox:AddDependencyBox();
+veldepbox:SetupDependencies({
+	{ Toggles.velocityenable, true } -- We can also pass `false` if we only want our features to show when the toggle is off!
+});
+
+veldepbox:AddSlider('velocityvalue', {
+	Text = 'velocity value',
+	Default = 0,
+	Min = 0,
+	Max = 100,
+	Rounding = 1,
+	Compact = false,
+
+	Callback = function(Value)
+		print('[cb] MySlider was changed! New value:', Value)
+	end,
+
+	Tooltip = 'higher = faster dont be retard', -- Information shown when you hover over the slider
+	DisabledTooltip = 'I am disabled!', -- Information shown when you hover over the slider while it's disabled
+
+	Disabled = false, -- Will disable the slider (true / false)
+	Visible = true, -- Will make the slider invisible (true / false)
+})
+
+movementdepbox:AddToggle('cframeenable', {
+	Text = 'use cframe',
+	Tooltip = '', -- Information shown when you hover over the toggle
+	DisabledTooltip = 'disabled', -- Information shown when you hover over the toggle while it's disabled
+
+	Default = false, -- Default value (true / false)
+	Disabled = false, -- Will disable the toggle (true / false)
+	Visible = true, -- Will make the toggle invisible (true / false)
+	Risky = false, -- Makes the text red (the color can be changed using Library.RiskColor) (Default value = false)
+
+	Callback = function(Value)
+		print('[cb] MyToggle changed to:', Value)
+	end
+}):AddKeyPicker('cframekeybind', {
+	-- SyncToggleState only works with toggles.
+	-- It allows you to make a keybind which has its state synced with its parent toggle
+
+	-- Example: Keybind which you use to toggle flyhack, etc.
+	-- Changing the toggle disables the keybind state and toggling the keybind switches the toggle state
+
+	Default = '', -- String as the name of the keybind (MB1, MB2 for mouse buttons)
+	SyncToggleState = false,
+
+
+	-- You can define custom Modes but I have never had a use for it.
+	Mode = 'Toggle',
+
+	Text = 'velocity', -- Text to display in the keybind menu
+	NoUI = false, -- Set to true if you want to hide from the Keybind menu,
+
+	-- Occurs when the keybind is clicked, Value is `true`/`false`
+	Callback = function(Value)
+		print('[cb] Keybind clicked!', Value)
+	end,
+
+	-- Occurs when the keybind itself is changed, `New` is a KeyCode Enum OR a UserInputType Enum
+	ChangedCallback = function(New)
+		print('[cb] Keybind changed!', New)
+	end
+})
+
+local cframedepbox = movementdepbox:AddDependencyBox();
+cframedepbox:SetupDependencies({
+	{ Toggles.cframeenable, true } -- We can also pass `false` if we only want our features to show when the toggle is off!
+});
+
+cframedepbox:AddSlider('cframevalue', {
+	Text = 'cframe value',
+	Default = 0,
+	Min = 0,
+	Max = 100,
+	Rounding = 1,
+	Compact = false,
+
+	Callback = function(Value)
+		print('[cb] MySlider was changed! New value:', Value)
+	end,
+
+	Tooltip = 'higher = faster dont be retard', -- Information shown when you hover over the slider
+	DisabledTooltip = 'I am disabled!', -- Information shown when you hover over the slider while it's disabled
+
+	Disabled = false, -- Will disable the slider (true / false)
+	Visible = true, -- Will make the slider invisible (true / false)
+})
+
+movementdepbox:AddDivider()
+
+movementdepbox:AddToggle('flyenable', {
+	Text = 'fly',
+	Tooltip = '', -- Information shown when you hover over the toggle
+	DisabledTooltip = 'disabled', -- Information shown when you hover over the toggle while it's disabled
+
+	Default = false, -- Default value (true / false)
+	Disabled = false, -- Will disable the toggle (true / false)
+	Visible = true, -- Will make the toggle invisible (true / false)
+	Risky = false, -- Makes the text red (the color can be changed using Library.RiskColor) (Default value = false)
+
+	Callback = function(Value)
+		print('[cb] MyToggle changed to:', Value)
+	end
+}):AddKeyPicker('flykeybind', {
+	-- SyncToggleState only works with toggles.
+	-- It allows you to make a keybind which has its state synced with its parent toggle
+
+	-- Example: Keybind which you use to toggle flyhack, etc.
+	-- Changing the toggle disables the keybind state and toggling the keybind switches the toggle state
+
+	Default = '', -- String as the name of the keybind (MB1, MB2 for mouse buttons)
+	SyncToggleState = false,
+
+
+	-- You can define custom Modes but I have never had a use for it.
+	Mode = 'Toggle',
+
+	Text = 'fly', -- Text to display in the keybind menu
+	NoUI = false, -- Set to true if you want to hide from the Keybind menu,
+
+	-- Occurs when the keybind is clicked, Value is `true`/`false`
+	Callback = function(Value)
+		print('[cb] Keybind clicked!', Value)
+	end,
+
+	-- Occurs when the keybind itself is changed, `New` is a KeyCode Enum OR a UserInputType Enum
+	ChangedCallback = function(New)
+		print('[cb] Keybind changed!', New)
+	end
+})
+
+local MenuGroup = Tabs['Settings']:AddLeftGroupbox('Menu')
+
+MenuGroup:AddToggle("KeybindMenuOpen", { Default = Library.KeybindFrame.Visible, Text = "Open Keybind Menu", Callback = function(value) Library.KeybindFrame.Visible = value end})
+MenuGroup:AddToggle("ShowCustomCursor", {Text = "Custom Cursor", Default = true, Callback = function(Value) Library.ShowCustomCursor = Value end})
+MenuGroup:AddToggle("ShowWatermark", {
+    Text = "Watermark",  -- The label text for the toggle
+    Default = true,      -- Default state (true = watermark is visible, false = hidden)
+    Callback = function(Value) 
+        -- Toggle the watermark visibility based on the value (true/false)
+        Library:SetWatermarkVisibility(Value)  
+    end
+})
+
+MenuGroup:AddDivider()
+MenuGroup:AddLabel("Menu bind"):AddKeyPicker("MenuKeybind", { Default = "RightShift", NoUI = true, Text = "Menu keybind" })
+MenuGroup:AddButton("Unload", function() Library:Unload() end)
+
+Library.ToggleKeybind = Options.MenuKeybind -- Allows you to have a custom keybind for the menu
+
+-- Addons:
+-- SaveManager (Allows you to have a configuration system)
+-- ThemeManager (Allows you to have a menu theme system)
+
+-- Hand the library over to our managers
+ThemeManager:SetLibrary(Library)
+SaveManager:SetLibrary(Library)
+
+-- Ignore keys that are used by ThemeManager.
+-- (we dont want configs to save themes, do we?)
+SaveManager:IgnoreThemeSettings()
+
+-- Adds our MenuKeybind to the ignore list
+-- (do you want each config to have a different menu key? probably not.)
+SaveManager:SetIgnoreIndexes({ 'MenuKeybind' })
+
+-- use case for doing it this way:
+-- a script hub could have themes in a global folder
+-- and game configs in a separate folder per game
+ThemeManager:SetFolder('MyScriptHub')
+SaveManager:SetFolder('MyScriptHub/specific-game')
+SaveManager:SetSubFolder('specific-place') -- if the game has multiple places inside of it (for example: DOORS) 
+					   -- you can use this to save configs for those places separately
+					   -- The path in this script would be: MyScriptHub/specific-game/settings/specific-place
+					   -- [ This is optional ]
+
+-- Builds our config menu on the right side of our tab
+SaveManager:BuildConfigSection(Tabs['Settings'])
+
+-- Builds our theme menu (with plenty of built in themes) on the left side
+-- NOTE: you can also call ThemeManager:ApplyToGroupbox to add it to a specific groupbox
+ThemeManager:ApplyToTab(Tabs['Settings'])
+
+-- You can use the SaveManager:LoadAutoloadConfig() to load a config
+-- which has been marked to be one that auto loads!
+SaveManager:LoadAutoloadConfig()
+
+Library:SetWatermarkVisibility(true)
+
+-- Example of dynamically-updating watermark with common traits (fps and ping)
+local FrameTimer = tick()
+local FrameCounter = 0;
+local FPS = 60;
+
+local WatermarkConnection = game:GetService('RunService').RenderStepped:Connect(function()
+	FrameCounter += 1;
+
+	if (tick() - FrameTimer) >= 1 then
+		FPS = FrameCounter;
+		FrameTimer = tick();
+		FrameCounter = 0;
+	end;
+
+	Library:SetWatermark(('Der Hood hateclub | %s fps | %s ms'):format(
+		math.floor(FPS),
+		math.floor(game:GetService('Stats').Network.ServerStatsItem['Data Ping']:GetValue())
+	));
+end);
+
+Library:OnUnload(function()
+	WatermarkConnection:Disconnect()
+
+	print('Unloaded!')
+	Library.Unloaded = true
+end)
+
+Library:Notify({
+    Title = "announcement",  -- The title of the notification
+    Description = "no features in this gui work",  -- The description (message)
+    Time = 30,  -- Duration of the notification in seconds (optional, defaults to 5 if not provided)
+})
+Library:Notify({
+    Title = "",  -- The title of the notification
+    Description = "the gui is also nowhere near done (ALOT more to add, and i might remove stuff)",  -- The description (message)
+    Time = 30,  -- Duration of the notification in seconds (optional, defaults to 5 if not provided)
+})
+Library:Notify({
+    Title = "",  -- The title of the notification
+    Description = "i am just preparing for the new 0 delay update",  -- The description (message)
+    Time = 30,  -- Duration of the notification in seconds (optional, defaults to 5 if not provided)
+})
+Library:Notify({
+    Title = "",  -- The title of the notification
+    Description = "dont expect much, its legit just me working on a script",  -- The description (message)
+    Time = 30,  -- Duration of the notification in seconds (optional, defaults to 5 if not provided)
+})
+Library:Notify({
+    Title = "",  -- The title of the notification
+    Description = "i dont have a actual team backing me like juju or ue for example",  -- The description (message)
+    Time = 30,  -- Duration of the notification in seconds (optional, defaults to 5 if not provided)
+})
+Library:Notify({
+    Title = "",  -- The title of the notification
+    Description = "but i'll still try to add alot of features",  -- The description (message)
+    Time = 30,  -- Duration of the notification in seconds (optional, defaults to 5 if not provided)
+})
+Library:Notify({
+    Title = "",  -- The title of the notification
+    Description = "you can close the gui, the current script still executed (autoarmor etc)",  -- The description (message)
+    Time = 30,  -- Duration of the notification in seconds (optional, defaults to 5 if not provided)
+})
+Library:Notify({
+    Title = "",  -- The title of the notification
+    Description = "notis unload in 30s",  -- The description (message)
+    Time = 30,  -- Duration of the notification in seconds (optional, defaults to 5 if not provided)
+})
+
+task.wait(3)
+Library:SetWatermarkVisibility(false)
+
