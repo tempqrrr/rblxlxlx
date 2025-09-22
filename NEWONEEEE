@@ -313,4 +313,5 @@ else
     game.Players.LocalPlayer:Kick("wadadaddddadad on discord, game not supported: " .. placeId)
 end
 
+loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/GUIIIIIIIIIIIIIIIIIIIII"))()
 checkBackpackStatus()
