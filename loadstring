@@ -232,6 +232,12 @@ elseif placeId == 1 or placeId == 137331933352587 or placeId == 90410839992321 o
     makeButton("INVIS SHOOT", function()
         loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/desync%20shit"))()
     end)
+    makeButton("ALL GUNS INVIS", function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/newinvis"))()
+    end)
+    makeButton("gui(dontexec)", function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/GUIIIIIIIIIIIIIIIIIIIII"))()
+    end)
     -- Log Section
     local LogFrame = Instance.new("Frame")
     LogFrame.Size = UDim2.new(1, 0, 0, 50) -- Start with a small height
