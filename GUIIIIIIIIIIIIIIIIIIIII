@@ -1634,53 +1634,10 @@ pcsettings:AddToggle('mode1pc', {
 
 local movementtab = Tabs.Character:AddLeftGroupbox('movement')
 
-movementtab:AddToggle('speedenable', {
-	Text = 'enable speed',
-	Tooltip = '', -- Information shown when you hover over the toggle
-	DisabledTooltip = 'disabled', -- Information shown when you hover over the toggle while it's disabled
-
-	Default = false, -- Default value (true / false)
-	Disabled = false, -- Will disable the toggle (true / false)
-	Visible = true, -- Will make the toggle invisible (true / false)
-	Risky = false, -- Makes the text red (the color can be changed using Library.RiskColor) (Default value = false)
-
-	Callback = function(Value)
-		print('[cb] MyToggle changed to:', Value)
-	end
-}):AddKeyPicker('speedkeybind', {
-	-- SyncToggleState only works with toggles.
-	-- It allows you to make a keybind which has its state synced with its parent toggle
-
-	-- Example: Keybind which you use to toggle flyhack, etc.
-	-- Changing the toggle disables the keybind state and toggling the keybind switches the toggle state
-
-	Default = '', -- String as the name of the keybind (MB1, MB2 for mouse buttons)
-	SyncToggleState = true,
 
 
-	-- You can define custom Modes but I have never had a use for it.
-	Mode = 'Toggle',
 
-	Text = 'speeding',
-	NoUI = true, -- Set to true if you want to hide from the Keybind menu,
-
-	-- Occurs when the keybind is clicked, Value is `true`/`false`
-	Callback = function(Value)
-		print('[cb] Keybind clicked!', Value)
-	end,
-
-	-- Occurs when the keybind itself is changed, `New` is a KeyCode Enum OR a UserInputType Enum
-	ChangedCallback = function(New)
-		print('[cb] Keybind changed!', New)
-	end
-})
-
-local movementdepbox = movementtab:AddDependencyBox();
-movementdepbox:SetupDependencies({
-	{ Toggles.speedenable, true } -- We can also pass `false` if we only want our features to show when the toggle is off!
-});
-
-movementdepbox:AddToggle('velocityenable', {
+movementtab:AddToggle('velocityenable', {
 	Text = 'use velocity',
 	Tooltip = '', -- Information shown when you hover over the toggle
 	DisabledTooltip = 'disabled', -- Information shown when you hover over the toggle while it's disabled
@@ -1721,7 +1678,7 @@ movementdepbox:AddToggle('velocityenable', {
 	end
 })
 
-local veldepbox = movementdepbox:AddDependencyBox();
+local veldepbox = movementtab:AddDependencyBox();
 veldepbox:SetupDependencies({
 	{ Toggles.velocityenable, true } -- We can also pass `false` if we only want our features to show when the toggle is off!
 });
@@ -1745,7 +1702,7 @@ veldepbox:AddSlider('velocityvalue', {
 	Visible = true, -- Will make the slider invisible (true / false)
 })
 
-movementdepbox:AddToggle('cframeenable', {
+movementtab:AddToggle('cframeenable', {
 	Text = 'use cframe',
 	Tooltip = '', -- Information shown when you hover over the toggle
 	DisabledTooltip = 'disabled', -- Information shown when you hover over the toggle while it's disabled
@@ -1786,7 +1743,7 @@ movementdepbox:AddToggle('cframeenable', {
 	end
 })
 
-local cframedepbox = movementdepbox:AddDependencyBox();
+local cframedepbox = movementtab:AddDependencyBox();
 cframedepbox:SetupDependencies({
 	{ Toggles.cframeenable, true } -- We can also pass `false` if we only want our features to show when the toggle is off!
 });
@@ -1810,9 +1767,9 @@ cframedepbox:AddSlider('cframevalue', {
 	Visible = true, -- Will make the slider invisible (true / false)
 })
 
-movementdepbox:AddDivider()
+movementtab:AddDivider()
 
-movementdepbox:AddToggle('flyenable', {
+movementtab:AddToggle('flyenable', {
 	Text = 'fly',
 	Tooltip = '', -- Information shown when you hover over the toggle
 	DisabledTooltip = 'disabled', -- Information shown when you hover over the toggle while it's disabled
@@ -1852,6 +1809,769 @@ movementdepbox:AddToggle('flyenable', {
 		print('[cb] Keybind changed!', New)
 	end
 })
+
+local flydepbox = movementtab:AddDependencyBox();
+flydepbox:SetupDependencies({
+	{ Toggles.flyenable, true } -- We can also pass `false` if we only want our features to show when the toggle is off!
+});
+
+flydepbox:AddSlider('flyvalue', {
+	Text = 'fly value',
+	Default = 0,
+	Min = 0,
+	Max = 1000,
+	Rounding = 1,
+	Compact = false,
+
+	Callback = function(Value)
+		print('[cb] MySlider was changed! New value:', Value)
+	end,
+
+	Tooltip = 'higher = faster dont be retard', -- Information shown when you hover over the slider
+	DisabledTooltip = 'I am disabled!', -- Information shown when you hover over the slider while it's disabled
+
+	Disabled = false, -- Will disable the slider (true / false)
+	Visible = true, -- Will make the slider invisible (true / false)
+})
+
+flydepbox:AddDivider()
+
+movementtab:AddToggle('jumpenable', {
+	Text = 'jump power',
+	Tooltip = '', -- Information shown when you hover over the toggle
+	DisabledTooltip = 'disabled', -- Information shown when you hover over the toggle while it's disabled
+
+	Default = false, -- Default value (true / false)
+	Disabled = false, -- Will disable the toggle (true / false)
+	Visible = true, -- Will make the toggle invisible (true / false)
+	Risky = false, -- Makes the text red (the color can be changed using Library.RiskColor) (Default value = false)
+
+	Callback = function(Value)
+		print('[cb] MyToggle changed to:', Value)
+	end
+}):AddKeyPicker('jumpkeybind', {
+	-- SyncToggleState only works with toggles.
+	-- It allows you to make a keybind which has its state synced with its parent toggle
+
+	-- Example: Keybind which you use to toggle flyhack, etc.
+	-- Changing the toggle disables the keybind state and toggling the keybind switches the toggle state
+
+	Default = '', -- String as the name of the keybind (MB1, MB2 for mouse buttons)
+	SyncToggleState = false,
+
+
+	-- You can define custom Modes but I have never had a use for it.
+	Mode = 'Toggle',
+
+	Text = 'jump power', -- Text to display in the keybind menu
+	NoUI = false, -- Set to true if you want to hide from the Keybind menu,
+
+	-- Occurs when the keybind is clicked, Value is `true`/`false`
+	Callback = function(Value)
+		print('[cb] Keybind clicked!', Value)
+	end,
+
+	-- Occurs when the keybind itself is changed, `New` is a KeyCode Enum OR a UserInputType Enum
+	ChangedCallback = function(New)
+		print('[cb] Keybind changed!', New)
+	end
+})
+
+local jumpdepbox = movementtab:AddDependencyBox();
+jumpdepbox:SetupDependencies({
+	{ Toggles.jumpenable, true } -- We can also pass `false` if we only want our features to show when the toggle is off!
+});
+
+jumpdepbox:AddSlider('flyvalue', {
+	Text = 'jump value',
+	Default = 0,
+	Min = 0,
+	Max = 1000,
+	Rounding = 1,
+	Compact = false,
+
+	Callback = function(Value)
+		print('[cb] MySlider was changed! New value:', Value)
+	end,
+
+	Tooltip = 'higher = faster dont be retard', -- Information shown when you hover over the slider
+	DisabledTooltip = 'I am disabled!', -- Information shown when you hover over the slider while it's disabled
+
+	Disabled = false, -- Will disable the slider (true / false)
+	Visible = true, -- Will make the slider invisible (true / false)
+})
+
+local characterexps = Tabs.Character:AddLeftGroupbox('character exploits')
+characterexps:AddToggle('noclipenable', {
+	Text = 'noclip',
+	Tooltip = '', -- Information shown when you hover over the toggle
+	DisabledTooltip = 'disabled', -- Information shown when you hover over the toggle while it's disabled
+
+	Default = false, -- Default value (true / false)
+	Disabled = false, -- Will disable the toggle (true / false)
+	Visible = true, -- Will make the toggle invisible (true / false)
+	Risky = false, -- Makes the text red (the color can be changed using Library.RiskColor) (Default value = false)
+
+	Callback = function(Value)
+		print('[cb] MyToggle changed to:', Value)
+	end
+}):AddKeyPicker('noclipkeybind', {
+	-- SyncToggleState only works with toggles.
+	-- It allows you to make a keybind which has its state synced with its parent toggle
+
+	-- Example: Keybind which you use to toggle flyhack, etc.
+	-- Changing the toggle disables the keybind state and toggling the keybind switches the toggle state
+
+	Default = '', -- String as the name of the keybind (MB1, MB2 for mouse buttons)
+	SyncToggleState = false,
+
+
+	-- You can define custom Modes but I have never had a use for it.
+	Mode = 'Toggle',
+
+	Text = 'noclipping', -- Text to display in the keybind menu
+	NoUI = false, -- Set to true if you want to hide from the Keybind menu,
+
+	-- Occurs when the keybind is clicked, Value is `true`/`false`
+	Callback = function(Value)
+		print('[cb] Keybind clicked!', Value)
+	end,
+
+	-- Occurs when the keybind itself is changed, `New` is a KeyCode Enum OR a UserInputType Enum
+	ChangedCallback = function(New)
+		print('[cb] Keybind changed!', New)
+	end
+})
+
+characterexps:AddToggle('noslowdownenable', {
+	Text = 'no slowdown',
+	Tooltip = '', -- Information shown when you hover over the toggle
+	DisabledTooltip = 'disabled', -- Information shown when you hover over the toggle while it's disabled
+
+	Default = false, -- Default value (true / false)
+	Disabled = false, -- Will disable the toggle (true / false)
+	Visible = true, -- Will make the toggle invisible (true / false)
+	Risky = false, -- Makes the text red (the color can be changed using Library.RiskColor) (Default value = false)
+
+	Callback = function(Value)
+		print('[cb] MyToggle changed to:', Value)
+	end
+})
+
+characterexps:AddToggle('nojumpcooldownenable', {
+	Text = 'no jump cooldown',
+	Tooltip = '', -- Information shown when you hover over the toggle
+	DisabledTooltip = 'disabled', -- Information shown when you hover over the toggle while it's disabled
+
+	Default = false, -- Default value (true / false)
+	Disabled = false, -- Will disable the toggle (true / false)
+	Visible = true, -- Will make the toggle invisible (true / false)
+	Risky = false, -- Makes the text red (the color can be changed using Library.RiskColor) (Default value = false)
+
+	Callback = function(Value)
+		print('[cb] MyToggle changed to:', Value)
+	end
+})
+
+characterexps:AddToggle('bunnyhopenable', {
+	Text = 'bunny hop',
+	Tooltip = 'move faster when jumping', -- Information shown when you hover over the toggle
+	DisabledTooltip = 'disabled', -- Information shown when you hover over the toggle while it's disabled
+
+	Default = false, -- Default value (true / false)
+	Disabled = false, -- Will disable the toggle (true / false)
+	Visible = true, -- Will make the toggle invisible (true / false)
+	Risky = false, -- Makes the text red (the color can be changed using Library.RiskColor) (Default value = false)
+
+	Callback = function(Value)
+		print('[cb] MyToggle changed to:', Value)
+	end
+}):AddKeyPicker('bunnyhopkeybind', {
+	-- SyncToggleState only works with toggles.
+	-- It allows you to make a keybind which has its state synced with its parent toggle
+
+	-- Example: Keybind which you use to toggle flyhack, etc.
+	-- Changing the toggle disables the keybind state and toggling the keybind switches the toggle state
+
+	Default = '', -- String as the name of the keybind (MB1, MB2 for mouse buttons)
+	SyncToggleState = true,
+
+
+	-- You can define custom Modes but I have never had a use for it.
+	Mode = 'Toggle',
+
+	Text = 'bunny hopping', -- Text to display in the keybind menu
+	NoUI = false, -- Set to true if you want to hide from the Keybind menu,
+
+	-- Occurs when the keybind is clicked, Value is `true`/`false`
+	Callback = function(Value)
+		print('[cb] Keybind clicked!', Value)
+	end,
+
+	-- Occurs when the keybind itself is changed, `New` is a KeyCode Enum OR a UserInputType Enum
+	ChangedCallback = function(New)
+		print('[cb] Keybind changed!', New)
+	end
+})
+
+characterexps:AddSlider('bunnyhopvalue', {
+	Text = 'bhop value',
+	Default = 0,
+	Min = 0,
+	Max = 1000,
+	Rounding = 1,
+	Compact = true,
+
+	Callback = function(Value)
+		print('[cb] MySlider was changed! New value:', Value)
+	end,
+
+	Tooltip = 'higher = faster dont be retard', -- Information shown when you hover over the slider
+	DisabledTooltip = 'I am disabled!', -- Information shown when you hover over the slider while it's disabled
+
+	Disabled = false, -- Will disable the slider (true / false)
+	Visible = true, -- Will make the slider invisible (true / false)
+})
+
+characterexps:AddDivider()
+
+characterexps:AddLabel('animation player')
+
+characterexps:AddToggle('animenable', {
+	Text = 'play animation',
+	Tooltip = 'play selected animation while active\n(if multiple chosen, chooses randomly)', -- Information shown when you hover over the toggle
+	DisabledTooltip = 'disabled', -- Information shown when you hover over the toggle while it's disabled
+
+	Default = false, -- Default value (true / false)
+	Disabled = false, -- Will disable the toggle (true / false)
+	Visible = true, -- Will make the toggle invisible (true / false)
+	Risky = false, -- Makes the text red (the color can be changed using Library.RiskColor) (Default value = false)
+
+	Callback = function(Value)
+		print('[cb] MyToggle changed to:', Value)
+	end
+}):AddKeyPicker('animkeybind', {
+	-- SyncToggleState only works with toggles.
+	-- It allows you to make a keybind which has its state synced with its parent toggle
+
+	-- Example: Keybind which you use to toggle flyhack, etc.
+	-- Changing the toggle disables the keybind state and toggling the keybind switches the toggle state
+
+	Default = '', -- String as the name of the keybind (MB1, MB2 for mouse buttons)
+	SyncToggleState = false,
+
+
+	-- You can define custom Modes but I have never had a use for it.
+	Mode = 'Toggle',
+
+	Text = 'anim playing', -- Text to display in the keybind menu
+	NoUI = false, -- Set to true if you want to hide from the Keybind menu,
+
+	-- Occurs when the keybind is clicked, Value is `true`/`false`
+	Callback = function(Value)
+		print('[cb] Keybind clicked!', Value)
+	end,
+
+	-- Occurs when the keybind itself is changed, `New` is a KeyCode Enum OR a UserInputType Enum
+	ChangedCallback = function(New)
+		print('[cb] Keybind changed!', New)
+	end
+})
+
+characterexps:AddLabel("switch animation"):AddKeyPicker("animationswitch", {
+	-- Example: Press Keybind which you use to run a callback when the key was pressed.
+
+	Default = "X", -- String as the name of the keybind (MB1, MB2 for mouse buttons)
+
+	Mode = "Press",
+	WaitForCallback = true, -- Locks the keybind during the execution of Callback and OnChanged.
+
+	Text = "",
+	NoUI = true, -- Text to display in the keybind menu
+
+	-- Occurs when the keybind is clicked, Value is always `true` for Press keybind.
+	Callback = function()
+		print("boii")
+	end
+})
+
+
+characterexps:AddBlank(10, true)
+
+characterexps:AddDropdown('selectedanims', {
+	Values = { 'emote1', '[BOOKMARK 1] list of emotes' },
+	Text = 'selected animations',
+	Default = 1, -- number index of the value / string
+	Multi = true, -- true / false, allows multiple choices to be selected
+
+	-- Text is not required for this Dropdown --
+	Tooltip = 'select emotes (can select multiple)', -- Information shown when you hover over the dropdown
+	DisabledTooltip = 'I am disabled!', -- Information shown when you hover over the dropdown while it's disabled
+
+	Searchable = true, -- true / false, makes the dropdown searchable (great for a long list of values)
+
+	Callback = function(Value)
+		print('[cb] Dropdown got changed. New value:', Value)
+	end,
+
+	Disabled = false, -- Will disable the dropdown (true / false)
+	Visible = true, -- Will make the dropdown invisible (true / false)
+})
+
+characterexps:AddInput('customanim', {
+	Default = '',
+	Numeric = false, -- true / false, only allows numbers
+	Finished = true, -- true / false, only calls callback when you press enter
+	ClearTextOnFocus = true, -- true / false, if false the text will not clear when textbox focused
+		
+	Text = 'custom anim',
+	Tooltip = 'can be list seperated by comma eg: 12, 32\nthese will be added to dropdown above', -- Information shown when you hover over the textbox
+
+	Placeholder = '(emote id) ex: 12345', -- placeholder text when the box is empty
+	-- MaxLength is also an option which is the max length of the text
+
+	Callback = function(Value)
+		print('[cb] Text updated. New text:', Value)
+	end
+})
+
+local antilocktab = Tabs.Character:AddRightGroupbox('anti lock')
+
+antilocktab:AddToggle('antilockenable', {
+	Text = 'enabled',
+	Tooltip = 'play selected animation while active\n(if multiple chosen, chooses randomly)', -- Information shown when you hover over the toggle
+	DisabledTooltip = 'disabled', -- Information shown when you hover over the toggle while it's disabled
+
+	Default = false, -- Default value (true / false)
+	Disabled = false, -- Will disable the toggle (true / false)
+	Visible = true, -- Will make the toggle invisible (true / false)
+	Risky = false, -- Makes the text red (the color can be changed using Library.RiskColor) (Default value = false)
+
+	Callback = function(Value)
+		print('[cb] MyToggle changed to:', Value)
+	end
+}):AddKeyPicker('antilockkeybind', {
+	-- SyncToggleState only works with toggles.
+	-- It allows you to make a keybind which has its state synced with its parent toggle
+
+	-- Example: Keybind which you use to toggle flyhack, etc.
+	-- Changing the toggle disables the keybind state and toggling the keybind switches the toggle state
+
+	Default = '', -- String as the name of the keybind (MB1, MB2 for mouse buttons)
+	SyncToggleState = true,
+
+
+	-- You can define custom Modes but I have never had a use for it.
+	Mode = 'antilock',
+
+	Text = 'anti locking', -- Text to display in the keybind menu
+	NoUI = false, -- Set to true if you want to hide from the Keybind menu,
+
+	-- Occurs when the keybind is clicked, Value is `true`/`false`
+	Callback = function(Value)
+		print('[cb] Keybind clicked!', Value)
+	end,
+
+	-- Occurs when the keybind itself is changed, `New` is a KeyCode Enum OR a UserInputType Enum
+	ChangedCallback = function(New)
+		print('[cb] Keybind changed!', New)
+	end
+})
+
+antilocktab:AddDropdown('antilockmode', {
+	Values = { 'custom', 'random', 'velocity multiplier', 'reverser', 'jitter', '[BOOKMARK1] think of diff methods' },
+	Text = 'antilock method',
+	Default = 1, -- number index of the value / string
+	Multi = false, -- true / false, allows multiple choices to be selected
+
+	-- Text is not required for this Dropdown --
+	Tooltip = '', -- Information shown when you hover over the dropdown
+	DisabledTooltip = 'I am disabled!', -- Information shown when you hover over the dropdown while it's disabled
+
+	Searchable = true, -- true / false, makes the dropdown searchable (great for a long list of values)
+
+	Callback = function(Value)
+		print('[cb] Dropdown got changed. New value:', Value)
+	end,
+
+	Disabled = false, -- Will disable the dropdown (true / false)
+	Visible = true, -- Will make the dropdown invisible (true / false)
+})
+
+antilocktab:AddBlank(10, true)
+
+antilocktab:AddInput('customtextbox', {
+	Default = '',
+	Numeric = false, -- true / false, only allows numbers
+	Finished = true, -- true / false, only calls callback when you press enter
+	ClearTextOnFocus = false, -- true / false, if false the text will not clear when textbox focused
+		
+	Text = 'custom',
+	Tooltip = 'x, y, z', -- Information shown when you hover over the textbox
+
+	Placeholder = 'ex: 10, -10, 10', -- placeholder text when the box is empty
+	-- MaxLength is also an option which is the max length of the text
+
+	Callback = function(Value)
+		print('[cb] Text updated. New text:', Value)
+	end
+})
+
+antilocktab:AddBlank(10, true)
+
+antilocktab:AddDropdown('randommodes', {
+	Values = { 'forward', 'backward', 'left', 'right', 'up', 'down', 'z'},
+	Text = 'random directions',
+	Default = 1, -- number index of the value / string
+	Multi = true, -- true / false, allows multiple choices to be selected
+
+	-- Text is not required for this Dropdown --
+	Tooltip = 'enabling z means instead of going in one pure direction e.g forward,\nit can go both e.g forward and to the right\n(only includes directions selected)', -- Information shown when you hover over the dropdown
+	DisabledTooltip = 'I am disabled!', -- Information shown when you hover over the dropdown while it's disabled
+
+	Searchable = true, -- true / false, makes the dropdown searchable (great for a long list of values)
+
+	Callback = function(Value)
+		print('[cb] Dropdown got changed. New value:', Value)
+	end,
+
+	Disabled = false, -- Will disable the dropdown (true / false)
+	Visible = true, -- Will make the dropdown invisible (true / false)
+})
+
+antilocktab:AddSlider('randomantilock', {
+	Text = 'max random distance',
+	Default = 0,
+	Min = 0,
+	Max = 200,
+	BlankSize = 5,
+	Rounding = 1,
+	Compact = true,
+
+	Callback = function(Value)
+		print('[cb] MySlider was changed! New value:', Value)
+	end,
+
+	Tooltip = '', -- Information shown when you hover over the slider
+	DisabledTooltip = 'I am disabled!', -- Information shown when you hover over the slider while it's disabled
+
+	Disabled = false, -- Will disable the slider (true / false)
+	Visible = true, -- Will make the slider invisible (true / false)
+})
+
+antilocktab:AddBlank(10, true)
+
+
+antilocktab:AddToggle('predrandomvalue', {
+	Text = 'multiplier random value',
+	Tooltip = 'toggle on if you want it to be random (min and max)', -- Information shown when you hover over the toggle
+	DisabledTooltip = 'disabled', -- Information shown when you hover over the toggle while it's disabled
+
+	Default = false, -- Default value (true / false)
+	Disabled = false, -- Will disable the toggle (true / false)
+	Visible = true, -- Will make the toggle invisible (true / false)
+	Risky = false, -- Makes the text red (the color can be changed using Library.RiskColor) (Default value = false)
+
+	Callback = function(Value)
+		print('[cb] MyToggle changed to:', Value)
+	end
+})
+
+antilocktab:AddToggle('predrandommode', {
+	Text = 'multiplier random mode',
+	Tooltip = 'will multiply in ANY direction, instead of character facing', -- Information shown when you hover over the toggle
+	DisabledTooltip = 'disabled', -- Information shown when you hover over the toggle while it's disabled
+
+	Default = false, -- Default value (true / false)
+	Disabled = false, -- Will disable the toggle (true / false)
+	Visible = true, -- Will make the toggle invisible (true / false)
+	Risky = false, -- Makes the text red (the color can be changed using Library.RiskColor) (Default value = false)
+
+	Callback = function(Value)
+		print('[cb] MyToggle changed to:', Value)
+	end
+})
+
+local predvaluebox = antilocktab:AddDependencyBox();
+predvaluebox:SetupDependencies({
+	{ Toggles.predrandomvalue, true } -- We can also pass `false` if we only want our features to show when the toggle is off!
+});
+local notpredvaluebox = antilocktab:AddDependencyBox();
+notpredvaluebox:SetupDependencies({
+	{ Toggles.predrandomvalue, false } -- We can also pass `false` if we only want our features to show when the toggle is off!
+});
+
+notpredvaluebox:AddSlider('predmulti', {
+	Text = 'multiplier',
+	Default = 0,
+	Min = 0,
+	Max = 200,
+	BlankSize = 5,
+	Rounding = 1,
+	Compact = true,
+
+	Callback = function(Value)
+		print('[cb] MySlider was changed! New value:', Value)
+	end,
+
+	Tooltip = '', -- Information shown when you hover over the slider
+	DisabledTooltip = 'I am disabled!', -- Information shown when you hover over the slider while it's disabled
+
+	Disabled = false, -- Will disable the slider (true / false)
+	Visible = true, -- Will make the slider invisible (true / false)
+})
+
+predvaluebox:AddSlider('predmin', {
+	Text = 'minimum multiplier',
+	Default = 0,
+	Min = 0,
+	Max = 200,
+	BlankSize = 5,
+	Rounding = 1,
+	Compact = true,
+
+	Callback = function(Value)
+		print('[cb] MySlider was changed! New value:', Value)
+	end,
+
+	Tooltip = '', -- Information shown when you hover over the slider
+	DisabledTooltip = 'I am disabled!', -- Information shown when you hover over the slider while it's disabled
+
+	Disabled = false, -- Will disable the slider (true / false)
+	Visible = true, -- Will make the slider invisible (true / false)
+})
+
+predvaluebox:AddSlider('predmax', {
+	Text = 'maximum multiplier',
+	Default = 0,
+	Min = 0,
+	Max = 200,
+	BlankSize = 5,
+	Rounding = 1,
+	Compact = true,
+
+	Callback = function(Value)
+		print('[cb] MySlider was changed! New value:', Value)
+	end,
+
+	Tooltip = '', -- Information shown when you hover over the slider
+	DisabledTooltip = 'I am disabled!', -- Information shown when you hover over the slider while it's disabled
+
+	Disabled = false, -- Will disable the slider (true / false)
+	Visible = true, -- Will make the slider invisible (true / false)
+})
+
+antilocktab:AddBlank(10, true)
+
+
+
+antilocktab:AddToggle('revererandomvalue', {
+	Text = 'reverser random value',
+	Tooltip = 'toggle on if you want it to be random (min and max)', -- Information shown when you hover over the toggle
+	DisabledTooltip = 'disabled', -- Information shown when you hover over the toggle while it's disabled
+
+	Default = false, -- Default value (true / false)
+	Disabled = false, -- Will disable the toggle (true / false)
+	Visible = true, -- Will make the toggle invisible (true / false)
+	Risky = false, -- Makes the text red (the color can be changed using Library.RiskColor) (Default value = false)
+
+	Callback = function(Value)
+		print('[cb] MyToggle changed to:', Value)
+	end
+})
+
+
+local reverservaluebox = antilocktab:AddDependencyBox();
+reverservaluebox:SetupDependencies({
+	{ Toggles.revererandomvalue, true } -- We can also pass `false` if we only want our features to show when the toggle is off!
+});
+local notreverservaluebox = antilocktab:AddDependencyBox();
+notreverservaluebox:SetupDependencies({
+	{ Toggles.revererandomvalue, false } -- We can also pass `false` if we only want our features to show when the toggle is off!
+});
+
+notreverservaluebox:AddSlider('reversermulti', {
+	Text = 'reverser',
+	Default = 0,
+	Min = 0,
+	Max = 200,
+	BlankSize = 5,
+	Rounding = 1,
+	Compact = true,
+
+	Callback = function(Value)
+		print('[cb] MySlider was changed! New value:', Value)
+	end,
+
+	Tooltip = 'how much to reverse (like a multiplier)', -- Information shown when you hover over the slider
+	DisabledTooltip = 'I am disabled!', -- Information shown when you hover over the slider while it's disabled
+
+	Disabled = false, -- Will disable the slider (true / false)
+	Visible = true, -- Will make the slider invisible (true / false)
+})
+
+reverservaluebox:AddSlider('reversermin', {
+	Text = 'minimum reverser',
+	Default = 0,
+	Min = 0,
+	Max = 200,
+	BlankSize = 5,
+	Rounding = 1,
+	Compact = true,
+
+	Callback = function(Value)
+		print('[cb] MySlider was changed! New value:', Value)
+	end,
+
+	Tooltip = '', -- Information shown when you hover over the slider
+	DisabledTooltip = 'I am disabled!', -- Information shown when you hover over the slider while it's disabled
+
+	Disabled = false, -- Will disable the slider (true / false)
+	Visible = true, -- Will make the slider invisible (true / false)
+})
+
+reverservaluebox:AddSlider('reversermax', {
+	Text = 'maximum reverser',
+	Default = 0,
+	Min = 0,
+	Max = 200,
+	BlankSize = 5,
+	Rounding = 1,
+	Compact = true,
+
+	Callback = function(Value)
+		print('[cb] MySlider was changed! New value:', Value)
+	end,
+
+	Tooltip = '', -- Information shown when you hover over the slider
+	DisabledTooltip = 'I am disabled!', -- Information shown when you hover over the slider while it's disabled
+
+	Disabled = false, -- Will disable the slider (true / false)
+	Visible = true, -- Will make the slider invisible (true / false)
+})
+
+antilocktab:AddBlank(10, true)
+
+
+
+antilocktab:AddToggle('jittervalue', {
+	Text = 'jitter random value',
+	Tooltip = 'jitter goes from (yourpos, randompos, yourpos, repeat)\nthis just makes the distance random each time', -- Information shown when you hover over the toggle
+	DisabledTooltip = 'disabled', -- Information shown when you hover over the toggle while it's disabled
+
+	Default = false, -- Default value (true / false)
+	Disabled = false, -- Will disable the toggle (true / false)
+	Visible = true, -- Will make the toggle invisible (true / false)
+	Risky = false, -- Makes the text red (the color can be changed using Library.RiskColor) (Default value = false)
+
+	Callback = function(Value)
+		print('[cb] MyToggle changed to:', Value)
+	end
+})
+
+local jittervaluebox = antilocktab:AddDependencyBox();
+jittervaluebox:SetupDependencies({
+	{ Toggles.jittervalue, true } -- We can also pass `false` if we only want our features to show when the toggle is off!
+});
+local notjittervaluebox = antilocktab:AddDependencyBox();
+notjittervaluebox:SetupDependencies({
+	{ Toggles.jittervalue, false } -- We can also pass `false` if we only want our features to show when the toggle is off!
+});
+
+notjittervaluebox:AddSlider('jittermulti', {
+	Text = 'multiplier',
+	Default = 0,
+	Min = 0,
+	Max = 200,
+	BlankSize = 5,
+	Rounding = 1,
+	Compact = true,
+
+	Callback = function(Value)
+		print('[cb] MySlider was changed! New value:', Value)
+	end,
+
+	Tooltip = '', -- Information shown when you hover over the slider
+	DisabledTooltip = 'I am disabled!', -- Information shown when you hover over the slider while it's disabled
+
+	Disabled = false, -- Will disable the slider (true / false)
+	Visible = true, -- Will make the slider invisible (true / false)
+})
+
+jittervaluebox:AddSlider('jittermin', {
+	Text = 'minimum jitter',
+	Default = 0,
+	Min = 0,
+	Max = 200,
+	BlankSize = 5,
+	Rounding = 1,
+	Compact = true,
+
+	Callback = function(Value)
+		print('[cb] MySlider was changed! New value:', Value)
+	end,
+
+	Tooltip = '', -- Information shown when you hover over the slider
+	DisabledTooltip = 'I am disabled!', -- Information shown when you hover over the slider while it's disabled
+
+	Disabled = false, -- Will disable the slider (true / false)
+	Visible = true, -- Will make the slider invisible (true / false)
+})
+
+jittervaluebox:AddSlider('jittermax', {
+	Text = 'maximum jitter',
+	Default = 0,
+	Min = 0,
+	Max = 200,
+	BlankSize = 5,
+	Rounding = 1,
+	Compact = true,
+
+	Callback = function(Value)
+		print('[cb] MySlider was changed! New value:', Value)
+	end,
+
+	Tooltip = '', -- Information shown when you hover over the slider
+	DisabledTooltip = 'I am disabled!', -- Information shown when you hover over the slider while it's disabled
+
+	Disabled = false, -- Will disable the slider (true / false)
+	Visible = true, -- Will make the slider invisible (true / false)
+})
+
+antilocktab:AddDropdown('jittermodes', {
+	Values = { 'forward', 'backward', 'left', 'right', 'up', 'down' },
+	Text = 'jitter directions',
+	Default = 1, -- number index of the value / string
+	Multi = true, -- true / false, allows multiple choices to be selected
+
+	-- Text is not required for this Dropdown --
+	Tooltip = '', -- Information shown when you hover over the dropdown
+	DisabledTooltip = 'I am disabled!', -- Information shown when you hover over the dropdown while it's disabled
+
+	Searchable = true, -- true / false, makes the dropdown searchable (great for a long list of values)
+
+	Callback = function(Value)
+		print('[cb] Dropdown got changed. New value:', Value)
+	end,
+
+	Disabled = false, -- Will disable the dropdown (true / false)
+	Visible = true, -- Will make the dropdown invisible (true / false)
+})
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 local MenuGroup = Tabs['Settings']:AddLeftGroupbox('Menu')
 
@@ -1937,68 +2657,3 @@ Library:OnUnload(function()
 	print('Unloaded!')
 	Library.Unloaded = true
 end)
-
-Library:Notify({
-    Title = "announcement",  -- The title of the notification
-    Description = "no features in this gui work",  -- The description (message)
-    Time = 30,  -- Duration of the notification in seconds (optional, defaults to 5 if not provided)
-})
-Library:Notify({
-    Title = "",  -- The title of the notification
-    Description = "this is because i just havent actually hooked up any off the toggles yet",  -- The description (message)
-    Time = 30,  -- Duration of the notification in seconds (optional, defaults to 5 if not provided)
-})
-Library:Notify({
-    Title = "",  -- The title of the notification
-    Description = "",  -- The description (message)
-    Time = 30,  -- Duration of the notification in seconds (optional, defaults to 5 if not provided)
-})
-Library:Notify({
-    Title = "",  -- The title of the notification
-    Description = "the gui is also nowhere near done (ALOT more to add, and i might remove stuff)",  -- The description (message)
-    Time = 30,  -- Duration of the notification in seconds (optional, defaults to 5 if not provided)
-})
-Library:Notify({
-    Title = "",  -- The title of the notification
-    Description = "i am just preparing for the new 0 delay update",  -- The description (message)
-    Time = 30,  -- Duration of the notification in seconds (optional, defaults to 5 if not provided)
-})
-Library:Notify({
-    Title = "",  -- The title of the notification
-    Description = "",  -- The description (message)
-    Time = 30,  -- Duration of the notification in seconds (optional, defaults to 5 if not provided)
-})
-Library:Notify({
-    Title = "",  -- The title of the notification
-    Description = "dont expect much, its legit just me working on a script",  -- The description (message)
-    Time = 30,  -- Duration of the notification in seconds (optional, defaults to 5 if not provided)
-})
-Library:Notify({
-    Title = "",  -- The title of the notification
-    Description = "i dont have a actual team backing me like juju or ue for example",  -- The description (message)
-    Time = 30,  -- Duration of the notification in seconds (optional, defaults to 5 if not provided)
-})
-Library:Notify({
-    Title = "",  -- The title of the notification
-    Description = "but i'll still try to add alot of features",  -- The description (message)
-    Time = 30,  -- Duration of the notification in seconds (optional, defaults to 5 if not provided)
-})
-Library:Notify({
-    Title = "",  -- The title of the notification
-    Description = "",  -- The description (message)
-    Time = 30,  -- Duration of the notification in seconds (optional, defaults to 5 if not provided)
-})
-Library:Notify({
-    Title = "",  -- The title of the notification
-    Description = "you can close the gui, the current script still executed (autoarmor etc)",  -- The description (message)
-    Time = 30,  -- Duration of the notification in seconds (optional, defaults to 5 if not provided)
-})
-Library:Notify({
-    Title = "",  -- The title of the notification
-    Description = "notis unload in 30s",  -- The description (message)
-    Time = 30,  -- Duration of the notification in seconds (optional, defaults to 5 if not provided)
-})
-
-task.wait(3)
-Library:SetWatermarkVisibility(false)
-
