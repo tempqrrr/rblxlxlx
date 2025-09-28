@@ -1,0 +1,64 @@
+
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local localPlayer = game.Players.LocalPlayer
+local checkcaller = checkcaller
+local hookmetamethod = hookmetamethod
+
+local desyncEnabled = false
+local realCFrame
+local realVelocity
+local DESYNCPOS = Vector3.new(100, -3e+5, 100)
+
+local hrp1 = localPlayer.Character.HumanoidRootPart
+-- Heartbeat-based desync logic
+RunService.Heartbeat:Connect(function()
+    if desyncEnabled and localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        local hrp = localPlayer.Character.HumanoidRootPart
+
+        realCFrame = hrp.CFrame
+        realVelocity = hrp.AssemblyLinearVelocity
+
+        hrp.CFrame = CFrame.new(DESYNCPOS)
+        hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+
+        RunService.RenderStepped:Wait()
+
+        hrp.CFrame = realCFrame
+        hrp.AssemblyLinearVelocity = realVelocity
+    end
+end)
+
+local oldIndex
+oldIndex = hookmetamethod(game, "__index", function(self, key)
+    if desyncEnabled and not checkcaller() then
+        if key == "CFrame" and self == localPlayer.Character.HumanoidRootPart then
+            return realCFrame or self.CFrame
+        elseif key == "AssemblyLinearVelocity" and self == localPlayer.Character.HumanoidRootPart then
+            return realVelocity or self.AssemblyLinearVelocity
+        end
+    end
+    return oldIndex(self, key)
+end)
+
+local function nibba()
+    local tool = localPlayer.Character:FindFirstChildOfClass("Tool")
+    hrp1.CFrame = realCFrame
+    tool:Activate()
+    hrp1.CFrame = CFrame.new(DESYNCPOS)
+end
+
+-- Toggle desync with V key
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+
+    if input.KeyCode == Enum.KeyCode.V then
+        desyncEnabled = not desyncEnabled  -- Toggle desync state
+    end
+        if input.KeyCode ==  Enum.UserInputType.MouseButton1 then
+        nibba()
+    end
+    if input.KeyCode == Enum.KeyCode.Q then
+        nibba()
+    end
+end)
