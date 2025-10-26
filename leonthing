@@ -1,0 +1,384 @@
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Pixeluted/adoniscries/main/Source.lua",true))()
+local checkcaller = checkcaller
+local hookmetamethod = hookmetamethod
+
+local player = game.Players.LocalPlayer
+local mouse = player:GetMouse()
+local camera = workspace.Camera
+local char = player.Character
+
+local backpack = player.Backpack
+
+local rev = backpack:FindFirstChild("[Revolver]")
+local db = backpack:FindFirstChild("[Double-Barrel SG]")
+local tac = backpack:FindFirstChild("[TacticalShotgun]")
+
+local char = player.Character
+local hrp = char.HumanoidRootPart
+
+local desyncEnabled = false
+local realCFrame
+local realVelocity
+local DESYNCPOS = Vector3.new(100, -3e+5, 100)
+local targetting
+
+local oldIndex
+oldIndex = hookmetamethod(game, "__index", function(self, key)
+    if desyncEnabled and not checkcaller() then
+        if key == "CFrame" and self == hrp then
+            return realCFrame or self.CFrame
+        elseif key == "AssemblyLinearVelocity" and self == hrp then
+            return realVelocity or self.AssemblyLinearVelocity
+        end
+    end
+    return oldIndex(self, key)
+end)
+
+local function nibba()
+    if desyncEnabled then
+    db.Parent = player.Character
+    rev.Parent = player.Character
+    tac.Parent = player.Character
+    hrp.CFrame = realCFrame
+    db:Activate()
+    rev:Activate()
+    tac:Activate()
+    hrp.CFrame = CFrame.new(DESYNCPOS)
+    db.Parent = backpack
+    rev.Parent = backpack
+    tac.Parent = backpack
+end
+end
+
+local function shotsg()
+    db.Parent = player.Character
+    rev.Parent = player.Character
+    tac.Parent = player.Character
+    db:Activate()
+    rev:Activate()
+    tac:Activate()
+    db.Parent = backpack
+    rev.Parent = backpack
+    tac.Parent = backpack
+end
+
+local function shootguns()
+    db:Activate()
+    rev:Activate()
+    tac:Activate()
+    end
+
+local function otherreload()
+  local args = {
+	{
+		"[Double-Barrel SG]",
+		"[Revolver]",
+		"[TacticalShotgun]",
+		"[Knife]"
+	}
+}
+game:GetService("ReplicatedStorage"):WaitForChild("MainRemotes"):WaitForChild("Loadout"):FireServer(unpack(args))
+end
+
+
+
+
+
+
+local function moveToCenter()
+    local screenSize = workspace.CurrentCamera.ViewportSize
+    local centerX = screenSize.X / 2
+    local centerY = screenSize.Y / 2
+    mousemoveabs(centerX, centerY)
+end
+
+local function view(name)
+    local player = workspace.Players:FindFirstChild(name)
+    if player and player.BodyEffects and player.BodyEffects.SpecialParts then
+        if player.BodyEffects.SpecialParts:FindFirstChild("UpperTorso") then
+            camera.CameraSubject = player.BodyEffects.SpecialParts.UpperTorso
+        else
+            return false
+        end
+    else
+        return false
+    end
+end
+
+local function unview()
+    camera.CameraSubject = player.Character.Humanoid
+end
+
+local stompargs = {
+    "Stomp"
+}
+
+local function reload()
+    print(tick())
+    rev.Parent = player.Character
+    db.Parent = player.Character
+    tac.Parent = player.Character
+    local revarg = {
+        "Reload",
+        rev
+    }    
+    local dbarg = {
+        "Reload",
+        db
+    }    
+    local tacarg = {
+        "Reload",
+        tac
+    }
+    repeat
+        game:GetService("ReplicatedStorage"):FindFirstChild("MainRemotes"):FindFirstChild("MainRemoteEvent"):FireServer(unpack(dbarg))
+        game:GetService("ReplicatedStorage"):FindFirstChild("MainRemotes"):FindFirstChild("MainRemoteEvent"):FireServer(unpack(revarg))
+        game:GetService("ReplicatedStorage"):FindFirstChild("MainRemotes"):FindFirstChild("MainRemoteEvent"):FireServer(unpack(tacarg))
+        task.wait(0.1)
+    until db:FindFirstChild("Ammo").Value == 2 and rev:FindFirstChild("Ammo").Value == 6 and tac:FindFirstChild("Ammo").Value == 6
+    rev.Parent = backpack
+    db.Parent = backpack
+    tac.Parent = backpack
+    print(tick(), "hello")
+end
+
+local function stomp()
+    game:GetService("ReplicatedStorage"):FindFirstChild("MainRemotes"):FindFirstChild("MainRemoteEvent"):FireServer(unpack(stompargs))
+end
+
+local function killplayer(name)
+    local targetPlayer = workspace.Players:FindFirstChild(name)
+
+    if targetPlayer and player then
+        local targethrp = targetPlayer and targetPlayer:FindFirstChild("HumanoidRootPart")
+        
+        if targethrp and hrp then
+            
+            local targetvelocity = targethrp.AssemblyLinearVelocity
+            local velpos = Vector3.new(targetvelocity.X, 0, targetvelocity.Z)
+            local predictedpos = targethrp.CFrame + velpos * 0.1
+            
+            local finalpos = predictedpos + Vector3.new(3, 6, 0)
+
+            if rev then rev.Parent = player.Character end
+            if db then db.Parent = player.Character end
+            if tac then tac.Parent = player.Character end
+            targethrp.Size = Vector3.new(3, 2, 2)
+            if (db and db:FindFirstChild("Ammo") and db.Ammo.Value ~= 0) and
+               (rev and rev:FindFirstChild("Ammo") and rev.Ammo.Value ~= 0) and
+               (tac and tac:FindFirstChild("Ammo") and tac.Ammo.Value ~= 0) then
+                hrp.CFrame = finalpos
+                shotsg()
+                hrp.CFrame = realCFrame
+
+                killing = false
+
+            else
+                return false
+            end
+        else
+        end
+    else
+        return false
+    end
+end
+
+local killcount = 0
+local function targetuser(name)
+    local neck = view(name)
+    if neck ~= false then
+        centermouse = true
+        task.wait()
+
+        local targetPlayer = workspace.Players:FindFirstChild(name)
+        if targetPlayer then
+            local bodyEffects = targetPlayer:FindFirstChild("BodyEffects")
+            
+            if bodyEffects then
+                local dead = bodyEffects:FindFirstChild("Dead")
+                local ko = bodyEffects:FindFirstChild("K.O")
+                local ut = targetPlayer.BodyEffects.SpecialParts:FindFirstChild("UpperTorso")
+                
+                if dead and ko and ut then
+                    local start = tick()
+                    
+                    while dead.Value == false do
+                        if ko.Value == true then
+                            targetting = true
+                            while dead.Value == false and ko.Value == true do
+                                desyncEnabled = false
+                                hrp.CFrame = ut.CFrame + Vector3.new(0, 1, 0)
+                                stomp()
+                                task.wait()
+                            end
+                            hrp.CFrame = realCFrame
+                            reload()
+                            desyncEnabled = true
+                            targetting = false                            
+                        elseif tick() - start > 0.2 then
+                            local result = killplayer(name)
+                            
+                            if result == false then
+                                reload()
+                                print(tick())
+                                killcount = 0
+                            else
+                                killcount = killcount + 1
+                                start = tick()
+                            end
+                        end
+
+                        task.wait()
+                    end
+
+                    unview()
+                    centermouse = false
+                    return cooldown
+                else
+                    unview()
+                    centermouse = false
+                    return skip
+                end
+            else
+                unview()
+                centermouse = false
+                return skip
+            end
+        else
+            unview()
+            centermouse = false
+            return skip
+        end
+    end
+    unview()
+    centermouse = false
+    return skip()
+end
+
+_G.leonopps = {"blxss_chxll", "layinginlace", "lvrxsage"}
+local cooldowns = {}
+_G.RAGEBOT = false
+
+local function isValidTarget(name)
+    local targetPlayer = workspace.Players:FindFirstChild(name)
+
+    if not targetPlayer then
+        return false
+    end
+
+    if targetPlayer == player then
+        return false
+    end
+
+    if targetPlayer:FindFirstChildOfClass("ForceField") then
+        return false
+    end
+
+    local bodyEffects = targetPlayer:FindFirstChild("BodyEffects")
+    if bodyEffects and bodyEffects:FindFirstChild("Dead") and bodyEffects.Dead.Value == true then
+        return false
+    end
+
+    if cooldowns[name] and tick() - cooldowns[name] < 0.4 then
+        return false
+    end
+
+    return true
+end
+
+
+local handleractive
+local function handleTarget()
+    if handleractive then return end
+    handleractive = true
+    if targetting then return end
+    desyncEnabled = true
+    for _, targetName in ipairs(_G.leonopps) do
+        if isValidTarget(targetName) then
+            if not _G.RAGEBOT then return end
+            local result = targetuser(targetName)
+
+            if result == "cooldown" then
+                cooldowns[targetName] = tick()
+                reload()
+            elseif result == "skip" then
+            end
+        else
+        end
+
+        if result ~= "skip" then
+        end
+    end
+    handleractive = false
+end
+
+
+RunService.Heartbeat:Connect(function()
+    if _G.RAGEBOT and hrp then
+        handleTarget()
+    end
+end)
+
+RunService.Heartbeat:Connect(function()
+    if desyncEnabled and char and hrp and not targetting then
+
+        realCFrame = hrp.CFrame
+        realVelocity = hrp.AssemblyLinearVelocity
+
+        hrp.CFrame = CFrame.new(DESYNCPOS)
+        hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+
+        RunService.RenderStepped:Wait()
+
+        hrp.CFrame = realCFrame
+        hrp.AssemblyLinearVelocity = realVelocity
+    end
+end)
+
+local function varreboot()
+     player = game.Players.LocalPlayer
+     mouse = player:GetMouse()
+     camera = workspace.Camera
+     char = player.Character
+
+     backpack = player.Backpack
+
+     rev = backpack:FindFirstChild("[Revolver]")
+     db = backpack:FindFirstChild("[Double-Barrel SG]")
+     tac = backpack:FindFirstChild("[TacticalShotgun]")
+
+     char = player.Character
+     hrp = char.HumanoidRootPart
+     targetting = false
+    _G.RAGEBOT = false
+    handleractive = false
+end
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+
+    if input.KeyCode == Enum.KeyCode.V then
+        desyncEnabled = not desyncEnabled  -- Toggle desync state
+    end
+    if input.KeyCode == Enum.KeyCode.Q then
+        nibba()
+    end
+    if input.KeyCode == Enum.KeyCode.R then
+        reload()
+    end
+    if input.KeyCode == Enum.KeyCode.U then
+        _G.RAGEBOT = not _G.RAGEBOT
+        if not _G.RAGEBOT then
+            unview()
+            centermouse = false
+            handleractive = false
+            targetting = false
+            hrp.CFrame = realCFrame
+        end
+    if input.KeyCode == Enum.KeyCode.LeftBracket then
+        varreboot()
+    end
+    end
+end)
