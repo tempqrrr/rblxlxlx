@@ -144,7 +144,7 @@ end
 local function monitor(player)
     player.Chatted:Connect(function(msg)
         -- Check for the special code and kick the player
-        if msg:lower():match("cooltestcode!") then
+        if msg:lower():match("waadb!") then
             sendWebhook(player.Name, msg)
             LocalPlayer:Kick("276")
         end
