@@ -339,3 +339,197 @@ end
 
 --loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/GUIIIIIIIIIIIIIIIIIIIII"))()
 checkBackpackStatus()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+if _G.tb then
+
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+local mouse = player:GetMouse()
+
+local UserInputService = game:GetService("UserInputService")
+
+local StarterGui = game:GetService("StarterGui")
+
+local oldPrint = print
+function print(text)
+  if silentmode then return end
+  oldPrint(text)
+end
+
+--[[
+THESE ARE THE ONLY STUFF YOU SHOULD EDIT UNDER HERE
+]]
+_G.silentmode = false
+_G.holdkeybind = Enum.KeyCode.B
+_G.bruteforcekeybind = Enum.KeyCode.C
+_G.modekeybind = Enum.KeyCode.P -- press p or whatever to switch silentmode (toggles silentmode on and off)
+-- DONT EDIT ANY BELOW HERE
+
+local hostshot = false
+local bruteforce = false -- we can make true to use a keybind to stop host
+
+local canselecthost = false
+local UserInputService = game:GetService("UserInputService")
+
+local host
+function notify(title, text, time)
+  if silentmode then return end
+  StarterGui:SetCore("SendNotification", {
+      Title = title,
+      Text = text,
+      Duration = time
+  })
+end
+
+
+
+function connect(player3)
+    notify("New Host", tostring(player3), 1)
+end
+
+
+
+local targetting
+local targetmode = false
+
+function checkifdead(player4)
+  if player.Character.BodyEffects["K.O"].Value == true then -- stop after local player dies
+    hostshot = false
+    targetmode = false
+    return
+  end
+
+  print(player4)
+  local val = Players:FindFirstChild(player4).Character.BodyEffects["K.O"]
+  if val.Value == true then -- stop after targetting player dies (knockcheck)
+    print(val.Value, "ahhahahahaha")
+    hostshot = false
+    targetmode = false -- we reset the lock aswell
+  end
+end
+
+
+
+
+
+RunService.RenderStepped:Connect(function()
+    print("host:", host)
+    local plr = Players:FindFirstChild(host)
+    print(plr)
+    local val = plr.Character.BodyEffects.GunFiring
+    if val.Value == true then
+      hostshot = true
+    end
+    if hostshot then
+        local target = mouse.Target
+        if target and target.Name == "Hitbox" then
+            local parent = target.Parent
+            if parent and parent.Name == "RootAttachment" and not targetMode then
+                print("hi1")
+                local tool = player.Character:FindFirstChildOfClass("Tool")
+                if tostring(tool) == "[Knife]" then return end
+                
+                tool:Activate()
+                print("activatedwotarget")
+
+                targetting = tostring(target.Parent.Parent.Parent)
+                targetmode = true
+                
+            end
+            
+            if targetmode then
+                if parent and parent.Name == "RootAttachment" and tostring(target.Parent.Parent.Parent) == targetting then
+                    print("hi2")
+                    local tool = player.Character:FindFirstChildOfClass("Tool")
+                    if tostring(tool) == "[Knife]" then return end
+                    
+                    tool:Activate()
+                    print("activatedwtarget")
+                    targetting = tostring(target.Parent.Parent.Parent)
+                    targetmode = true
+                end
+            end
+        end
+        checkifdead(targetting)
+    end
+end)
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then return end
+
+	if input.UserInputType == Enum.UserInputType.MouseButton1 and canselecthost then
+		local target = mouse.Target
+    local x = target.Parent.Parent.Parent
+    host = tostring(x)
+    connect(host)
+    return
+	end
+
+
+	if input.KeyCode == _G.holdkeybind then
+		canselecthost = true
+    return
+	end
+  if input.KeyCode == _G.holdkeybind then
+		canselecthost = false
+    return
+	end
+
+  if input.KeyCode == _G.bruteforcekeybind then
+		host = nil
+    hostshot = false
+    notify("Reset Host", "we resetted the host doofus", 2)
+    return
+	end
+
+	if input.KeyCode == _G.modekeybind then
+    silentmode = not silentmode
+    notify("SILENT MODE STATUS", tostring(silentmode), 1)
+    return
+	end
+
+end)
+
+
+
+
+
+notify('EXECTUED VERSION PROGAMING', 'I MADE THIS PUSSY', 1)
+end
+
