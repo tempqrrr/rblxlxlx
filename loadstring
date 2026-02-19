@@ -289,7 +289,7 @@ elseif placeId == 1 or placeId == 137331933352587 or placeId == 90410839992321 o
     end)
 
     -- Example of adding multiple lines to the TextBox
-    LogTextBox.Text = "-Added Zee Hood as a supported game\n\nBye"
+LogTextBox.Text = "script down cause im not bothered\n\nwas a great run though for the 4 months\n\nand thanks for 3.1k last month👌"
 
 
 
