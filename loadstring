@@ -25,28 +25,39 @@ local HoldKB = settings.HoldKB
 local WhitelistedTools = settings.WhitelistedTools
 local ListenKB = settings.ListenKB
 
-local held = false
-local listen = false
+
+local State = (function()
+    local data = { held = false, listen = false, tbconn = nil, target = nil }
+    local listeners = {}
+    local proxy = {}
+    function proxy:Watch(key, fn)
+        listeners[key] = listeners[key] or {}
+        table.insert(listeners[key], fn)
+        fn(data[key])
+    end
+    return setmetatable(proxy, {
+        __index = function(_, k) return data[k] end,
+        __newindex = function(_, k, v)
+            if data[k] == v then return end
+            data[k] = v
+            if listeners[k] then
+                for _, fn in ipairs(listeners[k]) do fn(v) end
+            end
+        end,
+    })
+end)()
 
 local uis = game:GetService("UserInputService")
 
 
 
 local function applyHoldState()
-    if not Hold then
-        held = true
-    else
-        held = false
-    end
+    State.held = not Hold and true or false
 end
 applyHoldState()
 
 local function applyListenState()
-    if not ListenKB then
-        listen = true
-    else
-        listen = false
-    end
+    State.listen = not ListenKB and true or false
 end
 applyListenState()
 
@@ -54,20 +65,20 @@ uis.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     if HoldKB and input.KeyCode == HoldKB then
         if Hold == "Toggle" then
-            held = not held
+            State.held = not State.held
         elseif Hold == "Hold" then
-            held = true
+            State.held = true
         end
     end
     if ListenKB and input.KeyCode == ListenKB then
-        listen = not listen
+        State.listen = not State.listen
     end
 end)
 
 uis.InputEnded:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     if HoldKB and input.KeyCode == HoldKB and Hold == "Hold" then
-        held = false
+        State.held = false
     end
 end)
 
@@ -76,8 +87,6 @@ end)
 local toolsconnected = {}
 local playersconnected = {}
 
-local target
-local tbconn = nil
 local koconn = nil
 
 local runService = game:GetService("RunService")
@@ -147,8 +156,8 @@ connectlP()
 
 
 function setupko()
-    if not target then warn('no target') return end
-    local bodyEffects = target:FindFirstChild("BodyEffects")
+    if not State.target then warn('no target') return end
+    local bodyEffects = State.target:FindFirstChild("BodyEffects")
     if not bodyEffects then warn('couldnt find BodyEffects') return end
     local ko = bodyEffects:FindFirstChild("K.O")
     if not ko then warn('couldnt find ko') return end
@@ -156,9 +165,9 @@ function setupko()
     koconn = ko.Changed:Connect(function(nv)
         if nv == true then
             print("target died")
-            if tbconn then tbconn:Disconnect() tbconn = nil end
+            if State.tbconn then State.tbconn:Disconnect() State.tbconn = nil end
             if koconn then koconn:Disconnect() koconn = nil end
-            target = nil
+            State.target = nil
         end
     end) -- ko is a boolvalue that has the value property, so we wait for the value to change to true
 end
@@ -184,38 +193,38 @@ function connectTool(char)
     local ma = maxAmmo.Value
 
     local toolconn = ammo.Changed:Connect(function(nV)
-        if not listen then return end
+        if not State.listen then return end
         if nV == ma then return end
 
         local hitPart1 = mouse.Target
 
         task.wait(HostDelay)
 
-        if held and hitPart1.Name == "Hitbox" then
+        if State.held and hitPart1.Name == "Hitbox" then
             t:Activate()
-            target = hitPart1:FindFirstAncestorOfClass("Model")
+            State.target = hitPart1:FindFirstAncestorOfClass("Model")
             setupko()
         end
 
-        if tbconn then
+        if State.tbconn then
             return
         end
 
         local oldTick = tick()
-        tbconn = runService.RenderStepped:Connect(function()
-            if not held then return end
+        State.tbconn = runService.RenderStepped:Connect(function()
+            if not State.held then return end
             if tick() - oldTick >= TBDelay then
                 local hitPart = mouse.Target
                 if hitPart.Name == "Hitbox" then
-                    if target then
-                        if hitPart:FindFirstAncestorOfClass("Model") == target then -- same target
+                    if State.target then
+                        if hitPart:FindFirstAncestorOfClass("Model") == State.target then -- same target
                             t:Activate()
                             oldTick = tick()
                         end
                     else
                         t:Activate()
                         oldTick = tick()
-                        target = hitPart:FindFirstAncestorOfClass("Model")
+                        State.target = hitPart:FindFirstAncestorOfClass("Model")
                         setupko()
                     end
                 end
@@ -387,7 +396,7 @@ Players.PlayerRemoving:Connect(refreshHostList)
 
 
 local settingsFrame = Instance.new("Frame")
-settingsFrame.Size = UDim2.new(0, 250, 0, 350)
+settingsFrame.Size = UDim2.new(0, 250, 0, 500)
 settingsFrame.Position = UDim2.new(1, -270, 0.5, -175)
 settingsFrame.BackgroundTransparency = 0.2
 settingsFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
@@ -656,10 +665,9 @@ tbConnToggle.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
 tbConnToggle.Parent = tbConnRow
 
 tbConnToggle.MouseButton1Click:Connect(function()
-    if tbconn then
-        print("disconnecting")
-        tbconn:Disconnect()
-        tbconn = nil
+    if State.tbconn then
+        State.tbconn:Disconnect()
+        State.tbconn = nil
     end
 end)
 
@@ -692,17 +700,46 @@ targetVal.TextXAlignment = Enum.TextXAlignment.Center
 targetVal.TextTruncate = Enum.TextTruncate.AtEnd
 targetVal.Parent = targetRow
 
-runService.Heartbeat:Connect(function()
-    local active = tbconn ~= nil
-    tbConnToggle.Text = active and "true" or "false"
-    tbConnToggle.BackgroundColor3 = active and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(150, 0, 0)
+local function makeStatusRow(labelText)
+    rowOrder = rowOrder + 1
+    local row = Instance.new("Frame")
+    row.LayoutOrder = rowOrder
+    row.Size = UDim2.new(1, 0, 0, 25)
+    row.BackgroundTransparency = 1
+    row.Parent = settingsContainer
 
-    if target then
-        targetVal.Text = target.Name
-    else
-        targetVal.Text = "false"
-    end
-end)
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(0.7, 0, 1, 0)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = labelText
+    lbl.TextColor3 = Color3.new(1, 1, 1)
+    lbl.Font = Enum.Font.SourceSans
+    lbl.TextSize = 14
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.Parent = row
+
+    local val = Instance.new("TextLabel")
+    val.Size = UDim2.new(0.3, -5, 1, 0)
+    val.Position = UDim2.new(0.7, 5, 0, 0)
+    val.TextColor3 = Color3.new(1, 1, 1)
+    val.Font = Enum.Font.SourceSansBold
+    val.TextSize = 14
+    val.Parent = row
+    return val
+end
+
+local heldVal = makeStatusRow("Held")
+local listenVal = makeStatusRow("Listen")
+
+local function paintBool(label, v)
+    label.Text = v and "true" or "false"
+    label.BackgroundColor3 = v and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(150, 0, 0)
+end
+
+State:Watch("tbconn", function(v) paintBool(tbConnToggle, v ~= nil) end)
+State:Watch("target", function(v) targetVal.Text = v and v.Name or "false" end)
+State:Watch("held",   function(v) paintBool(heldVal, v) end)
+State:Watch("listen", function(v) paintBool(listenVal, v) end)
 
 
 local function createTool()
